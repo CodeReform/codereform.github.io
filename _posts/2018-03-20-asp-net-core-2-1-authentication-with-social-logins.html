@@ -1,0 +1,152 @@
+---
+layout: post
+title: ASP.NET Core 2.1 Authentication with social logins
+date: 2018-03-20 00:49:13.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET Core"
+- C#
+tags:
+- ASP.NET Core 2.1
+- Authentication
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _thumbnail_id: '876'
+  _publicize_job_id: '15901540877'
+  timeline_notification: '1521506954'
+  _oembed_e9f6ae354ffa5368110cd34f105d0c8b: "{{unknown}}"
+  _oembed_fbd93fd3499e85f895c9ddb0451ce934: "{{unknown}}"
+  _oembed_f373bf0816389100bb08e234628f0bf4: "{{unknown}}"
+  _oembed_e92915079822567e37e6709a275605cc: "{{unknown}}"
+  _oembed_5af90b7a27ce03d5f7964fffad4c3bde: "{{unknown}}"
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/03/20/asp-net-core-2-1-authentication-with-social-logins/"
+---
+<p>This post is part of a series on ASP.NET Core 2.0 Authentication and I am going to talk about sign-in via social or third-party providers like Facebook, Twitter or GitHub.</p>
+<p><!--more--></p>
+<h2>Application</h2>
+<p>In this post I will setup a new ASP.NET 2.1 MVC application, without any security mechanism scaffolded, I will actually setup logins based on various social providers like Facebook, Twitter and Github.<br />
+This time I will only talk about securing the application with the minimum identity claims provided by the social providers. In coming posts I will focus on enriching the experience, requiring even more information, but let's keep this one really simple.</p>
+<p>Ergo, application will be kept very simple, with a secure page that outlines authenticated user's claims.<br />
+Login is handled by a page which lists the available social providers. User has also the ability to sign-out from the application.</p>
+<h3>Source Code</h3>
+<p>Code outlined in this article can be found on <a href="https://github.com/gdyrrahitis/bpost-aspnetcore-social-logins">Github</a>.</p>
+<h2>Social Providers</h2>
+<p>Many scenarios require applications that need to work with a social provider, like Facebook, Twitter, Github, LinkedIn, Instagram, etc.<br />
+The application may need to access specific user Id's, or photos, or posts, etc.<br />
+Maybe using local logins is not possible for your application. This is where social logins shine. Using a social login is much more easier process than specifying you own store, handle users, role, claims, etc., handle sign-in, sign-out, sign-up.<br />
+What do we need though to set this up?</p>
+<p>In order to get up-and-running with a social provider we need to register the application with that provider.</p>
+<p>Then we need a way to handle <a href="https://oauth.net/2/">OAuth</a>/<a href="http://openid.net/connect/">OIDC</a> (Open Id Connect) redirects with the provider. Remember that the application does not take/store any credentials from the user, it is merely redirecting to the social provider, which signs-in the user and redirects back to the application with an authorization code (depends on the flow the provider supports, but most of the times this is the flow).</p>
+<p>Next, we need to handle cookies, meaning that we must store the OAuth code on a cookie. This code is exchanged with the provider for a cookie. Finally, we must find a way to sign-out from the application.</p>
+<p>I hope, by now, you understand how much easier it is to set this up rather a local login. As mentioned earlier, local logins would require you to set up</p>
+<ul>
+<li>a data store, for example SQL Server or MySQL, and a schema to define users, roles, user claims and other stuff. Check the previous posts on local logins to find out how much work I had to do in order to create a store.</li>
+<li>a way to validate user credentials and encrypt them.</li>
+<li>login, logout and sign-up screens.</li>
+</ul>
+<p>But when setting social logins, you don't need to go through all this fuss. Just setup the provider and some keys and let the application handle the rest.</p>
+<h3>Setup MVC application</h3>
+<p>First I am going to setup the MVC application quickly. Select your workspace, open command prompt and use the dotnet CLI to create the app.<br />
+Please note, that I am going to create an ASP.NET Core 2.1 MVC application, so if you want to follow along, make sure to download latest <a href="https://www.microsoft.com/net/download/dotnet-core/sdk-2.1.300-preview1">.NET Core 2.1 SDK</a>. I am working on Windows 10 x64, so I will need the x64 installer.<br />
+If you wish to work on ASP.NET Core 2.1 that is no problem, just follow along, you will only need to use the 2.0 NuGet packages instead of 2.1-preview.</p>
+<pre class="prettyprint lang-bash"><code>
+&gt; dotnet new mvc -au None -n Social.Logins.Web
+&gt; dotnet new sln -n Authentication
+&gt; dotnet sln add Social.Logins.Web\Social.Logins.Web.csproj</code></pre>
+<p>Social.Logins.Web is the MVC application. If you want to know the app URL, navigate into project's folder, under Properties you will find the <code>launchSettings.json</code>. Open it and locate the <code>applicationUrl</code> under <code>iisExpress</code>. Its value is<code>http://localhost:45138</code>. You will also need the HTTPS URL, which is also listed there,<code>https://localhost:44393/</code>.</p>
+<p>Let's quickly add the required <code>Microsoft.AspNetCore.Authentication</code> NuGet packages in <code>Social.Logins.Web</code> project.</p>
+<pre class="prettyprint lang-text"><code>&gt; dotnet add package Microsoft.AspNetCore.Authentication.Facebook --version 2.1.0-preview1-final
+&gt;dotnet add package Microsoft.AspNetCore.Authentication.Twitter --version 2.1.0-preview1-final
+&gt;dotnet add package AspNet.Security.OAuth.GitHub --version 2.0.0-rc2-final</code></pre>
+<p>Before jumping into code, let me quickly show you how to register you application in Facebook, Twitter and Github.<br />
+Remember, the application's running in localhost in <code>http://localhost:45138</code> and<code>https://localhost:44393</code>.</p>
+<h3>Facebook</h3>
+<p>Go to<a href="https://developers.facebook.com/">https://developers.facebook.com/</a> and on top right menu, select <strong>My Apps</strong> and <strong>Add New App</strong>.<br />
+Provide a name for your app and an email. Hit <strong>Create App ID</strong>.</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_11.png"><img class="alignnone wp-image-888" src="{{ site.baseurl }}/assets/2018/03/screenshot_11.png" alt="" width="588" height="268" /></a></p>
+<p>Select <strong>Facebook Login</strong> in products screen</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_21.png"><img class="alignnone size-full wp-image-891" src="{{ site.baseurl }}/assets/2018/03/screenshot_21.png" alt="" width="750" height="446" /></a></p>
+<p>And <strong>Web</strong> in the quickstart screen</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_31.png"><img class="alignnone size-full wp-image-892" src="{{ site.baseurl }}/assets/2018/03/screenshot_31.png" alt="" width="750" height="244" /></a></p>
+<p>Insert the application URL found in <code>launchsettings.json</code>and click save.</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_41.png"><img class="alignnone size-full wp-image-894" src="{{ site.baseurl }}/assets/2018/03/screenshot_41.png" alt="" width="750" height="498" /></a></p>
+<p>Go to the Facebook Login product Settings and make sure to add the following redirect URIs in Client OAuth Settings. By default ASP.NET Core is using the <code>/signin-facebook</code> redirect URI. Be sure to add for HTTPS as well, cause the ASP.NET Core 2.1 application is running in HTTPS.</p>
+<p><a href="{{ site.baseurl }}/2018/03/client_oauth_settings.png"><img class="alignnone size-full wp-image-896" src="{{ site.baseurl }}/assets/2018/03/client_oauth_settings.png" alt="" width="750" height="419" /></a></p>
+<p>In Settings &gt; Basic make sure to copy the App ID and the App Secret. You will need them later in Facebook authentication setup.</p>
+<h3>Twitter</h3>
+<p>Go to<a href="https://apps.twitter.com/">https://apps.twitter.com/</a> and create a new app. I will use the default ASP.NET Core callback URI which is <code>/signin-twitter</code>.</p>
+<p><a href="{{ site.baseurl }}/2018/03/twitter_app1.png"><img class="alignnone size-full wp-image-898" src="{{ site.baseurl }}/assets/2018/03/twitter_app1.png" alt="" width="750" height="513" /></a></p>
+<p>Copy the consumer key and consumer secret for later usage.</p>
+<h3>Github</h3>
+<p>Go to<a href="https://github.com/settings/developers">https://github.com/settings/developers</a> and create a new OAuth app.</p>
+<p>Provide the callback URL with the default <code>/signin-github</code> URI.<br />
+Fill rest of required settings if you wish.</p>
+<p><a href="{{ site.baseurl }}/2018/03/github1.png"><img class="alignnone size-full wp-image-900" src="{{ site.baseurl }}/assets/2018/03/github1.png" alt="" width="653" height="562" /></a></p>
+<p>Copy the client Id and client secret to use them in application setup.</p>
+<h2>Implementation</h2>
+<p>Now that I have registered the application with those providers, it is time to configure them in code.<br />
+So, in <code>Startup.cs</code>, I will need to register these providers in authentication services. In <code>ConfigureServices</code> add the following configuration for authentication</p>
+<p>{% gist 022b288e32765e84cb3fe9e45b5a2aed %}</p>
+<p>Notice there is an extension method for each provider thanks to installing the appropriate NuGet packages earlier. The configuration in those is minimum as you see, you only need to setup your keys, so the provider knows about this application. But all these take care of user authentication.<br />
+For signing-in the user, I have added a call to the cookie authentication handler, <code>.AddCookie</code>. Note that I have setup the <code>LoginPath</code> to match a custom sign-in action. This is where the unauthorized user will be redirected in a challenge. I've done this because I have more than one social providers registered with my application. If I had one, I wouldn't need that, cause I would just challenge the user against that sole provider.<br />
+Also note that I have setup the <code>DefaultAuthenticateScheme</code>, <code>DefaultChallengeScheme</code> and <code>DefaultSignInScheme</code> to cookie authentication.<br />
+<code>DefaultChallengeScheme</code> is setup to cookie authentication for the reasons I described above. I have more than one providers and I want a consolidated sign-in screen to present them to the user, so he/she decides with whom provider to sign-in.<br />
+<code>DefaultSignInScheme</code> is setup to cookie authentication because I would like the application to use the cookie authentication scheme by default when signing in the user after authentication has taken place.<br />
+<code>DefaultAuthenticateScheme</code> is setup to cookie authentication as the default when authenticating users on incoming requests.</p>
+<p>Don't forget to register authentication in the pipeline, in <code>Configure</code> method.</p>
+<p>{% gist 7b840ca9b509fe0d629b5b841668b265  %}</p>
+<p>Now that configuration is in place, let's write some code to demonstrate the social logins.</p>
+<p>First, I will start by creating an AuthController, which has actions to sign-in and sign-out the user.<br />
+I have created a <code>SignIn</code> action, which lists all available providers. Next, I have a <code>SignIn</code> action again, but this time it is performing real sign-in operations. It takes a provider name as a route and an optional return URL. It returns a <code>Challenge</code> back to the user, based on the authentication scheme, which is the provider. It also configures the redirect URI to be the return URL passed, else it redirects back to home. We need to set that because if we don't the application will fall in a infinite loop of redirections with the provider.<br />
+<code>SignOut</code> action calls the <code>SignOutAsync</code> method on the cookie and returns back to home page.</p>
+<p>{% gist 3f333116d9267e643db9c3d10ed4dfc2  %}</p>
+<p>Let's see the <code>SignIn.cshtml</code> view. It lists all registered social providers for the user. In order to fetch them, I have injected an instance of<code>IAuthenticationSchemeProvider</code>, named it SchemeProvider and called the <code>GetRequestHandlerSchemesAsync</code>, which returns all the external providers. I pass all the required information in the anchor tag, along with the return URL that is created by the 401 challenge.</p>
+<p>{% gist 71b38b295276c40128a22cc97f70b9ba  %}</p>
+<p>Next up, I will create a new controller, just to show authenticated user claims. I named the controller <code>ProfileController</code>, with a single <code>Index</code> action, which creates a view model based on user's claims and name, to show on screen.</p>
+<p>{% gist c356233bc26af2dd3820a651f91fc16f  %}</p>
+<p>And this is the view, it displays user's name and his claims.</p>
+<p>{% gist e0cb780b45cfb18b0cbaf7dad524a570  %}</p>
+<p>Finally, I will show you the layout menu, which has links to sign-in and sign-out actions. <code>SignIn</code> menu item is showing when the user is not authenticated, otherwise there is a link that opens a modal for the user to logout. Reason I did not made <code>SignOut</code> a GET is because Chrome prefetches GET requests to speed up browsing. This would result signing the user out without reason, just because Chrome would prefetch the GET request (meaning Chrome would do a sign out and you won't even notice!).</p>
+<p>{% gist e276777d5d1a6146c93107c5e4019dac  %}</p>
+<p>This is the modal that has the <code>SignOut</code> action wrapped in a form, so Chrome will not prefetch that one.</p>
+<p>{% gist d782676338581f378095f260153026c7  %}</p>
+<p>Let's see this in action</p>
+<h4>Facebook</h4>
+<p>I open the Sign In screen and choose the Facebook Login. This redirects me to Facebook, whereas I have to authorize this app to use my profile.</p>
+<p><a href="{{ site.baseurl }}/2018/03/ezgif-4-b4e85db38b.gif"><img class="alignnone wp-image-929 size-full" style="border:2px solid #000000;" src="{{ site.baseurl }}/assets/2018/03/ezgif-4-b4e85db38b.gif" alt="" width="750" height="410" /></a></p>
+<h4>Twitter</h4>
+<p>I open the Sign In screen and choose the Twitter Login. This redirects me to Twitter, whereas I have to authorize this app to use my profile.</p>
+<p><a href="{{ site.baseurl }}/2018/03/ezgif-4-0e9e2620b8.gif"><img class="alignnone wp-image-919 size-full" style="border:2px solid #000000;" src="{{ site.baseurl }}/assets/2018/03/ezgif-4-0e9e2620b8.gif" alt="" width="750" height="410" /></a></p>
+<h4>GitHub</h4>
+<p>I open the Sign In screen and choose the GitHub Login. This redirects me to GitHub, whereas I have to authorize this app to use my profile.</p>
+<p><a href="{{ site.baseurl }}/2018/03/ezgif-4-ef8a2d96b7.gif"><img class="alignnone wp-image-924 size-full" style="border:2px solid #000000;" src="{{ site.baseurl }}/assets/2018/03/ezgif-4-ef8a2d96b7.gif" alt="" width="750" height="410" /></a></p>
+<h4>Sign-out</h4>
+<p>To sign-out, I click on the link on the top right corner, which itself opens a new modal dialog. I click on the Sign Out button, which indeed, signs the user out.</p>
+<p><a href="{{ site.baseurl }}/2018/03/ezgif-4-0d5f4797ba.gif"><img class="alignnone wp-image-931 size-full" style="border:2px solid #000000;" src="{{ site.baseurl }}/assets/2018/03/ezgif-4-0d5f4797ba.gif" alt="" width="750" height="410" /></a></p>
+<p>&nbsp;</p>
+<h2>Summary</h2>
+<p>In this post, I've registered with three social providers, Facebook, Twitter and Github, demonstrating how to secure your application.<br />
+I had to register these providers in Startup, with keys provided from their portals.<br />
+In next post I will show how to setup a profile store, so you can import additional information for the authenticated user.</p>
+<hr />
+<p>This post is part of the <em>ASP.NET Core 2.0 Authentication series</em>.</p>
+<ol>
+<li><a href="https://wp.me/p7uERY-85">ASP.NET Core 2.0 Cookie Authentication - Local logins</a></li>
+<li><a href="https://wp.me/p7uERY-aP">ASP.NET Core 2.0 Authentication with local logins - Implementing claims transformation</a></li>
+<li><a href="https://wp.me/p7uERY-aX">ASP.NET Core 2.0 Authentication with local logins - Responding to backend changes</a></li>
+<li><a href="https://wp.me/p7uERY-aV">ASP.NET Core 2.0 Authentication with local logins - Implementing custom authorization policies</a></li>
+<li><a href="https://wp.me/p7uERY-9V"><strong>ASP.NET Core 2.1 Authentication with social logins</strong></a></li>
+<li><a href="https://wp.me/p7uERY-aR">ASP.NET Core 2.0 Authentication with social logins - Implementing a profile store</a></li>
+<li><a href="https://wp.me/p7uERY-ib">ASP.NET Core 2.0 Authentication with Azure Active Directory</a></li>
+<li>ASP.NET Core 2.0 Authentication with Azure Active Directory B2C</li>
+<li>ASP.NET Core 2.0 Authentication, IdentityServer4 and Angular</li>
+</ol>

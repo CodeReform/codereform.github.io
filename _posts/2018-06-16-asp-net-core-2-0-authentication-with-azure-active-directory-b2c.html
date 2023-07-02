@@ -1,0 +1,206 @@
+---
+layout: post
+title: ASP.NET Core 2.0 Authentication with Azure Active Directory B2C
+date: 2018-06-16 14:11:17.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET Core"
+- C#
+tags:
+- ASP.NET Core 2.0
+- Authentication
+- Azure Active Directory
+- OAuth
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _thumbnail_id: '1231'
+  enclosure: |
+    https://georgedyrra.files.wordpress.com/2018/06/profile.mp4
+    1256663
+    video/mp4
+  _publicize_job_id: '19028251313'
+  timeline_notification: '1529158278'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/06/16/asp-net-core-2-0-authentication-with-azure-active-directory-b2c/"
+---
+<p>In today's post of <em>ASP.NET Core 2.0 Authentication</em> series, I am going to discuss about Azure Active Directory B2C, a service provided by Microsoft Azure for identity access and management.<br />
+In previous post, I talked about Azure Active Directory and how useful it is in corporate scenarios, however B2C is a better option for external user access and identity management, with powerful features such as support for various identity providers, policies and many more.</p>
+<p>I will first briefly discuss about Azure AD B2C, what is it and how it is different from standard Azure AD. Then I am going to show you how to setup a tenant on Azure Portal, how to configure an identity provider, GitHub in this scenario, and how to setup policies. In the last part, I will show you how to configure your application to authenticate users using Azure AD B2C and how to handle failure events.</p>
+<p><!--more--></p>
+<h2>Source Code</h2>
+<p>Code outlined in this article can be found on my <a href="https://github.com/gdyrrahitis/bpost-apsnetcore-azure-ad-b2c">GitHub repository</a>.</p>
+<h2>What is Azure Active Directory B2C</h2>
+<p><a href="https://azure.microsoft.com/en-us/services/active-directory-b2c/">Azure Active Directory B2C</a> is a cloud identity service, powered by <a href="https://azure.microsoft.com/en-us/">Microsoft Azure</a>, and build on top of <a href="https://georgedyrra.com/2018/05/23/asp-net-core-2-0-authentication-with-azure-active-directory/">Azure Active Directory</a>. The fact that's build on top of Azure AD means that it share its traits, being a highly secure, scalable and reliable cloud identity platform.</p>
+<p>Azure AD B2C is pretty much regular Azure Active Directory but compared to latter, which it is intended to be used in corporate scenarios, this is build to be used with external users, something that makes it a very interesting option when it comes to choose a third party provider for identity management.</p>
+<p>Like Azure Active Directory, it is using the <a href="http://openid.net/connect/">Open ID Connect</a> protocol, though it is not limited in that option only, it supports other open standards as well, but it also supports many other features. Such feature is the ability to configure third party providers to be used as well, including Facebook, Twitter, Google, GitHub and many other among them.<br />
+Another key feature is the policy configuration. A policy is a configuration of a feature of the Active Directory that we want to use. Such feature might be the sign-in or sign-up feature. With this in mind, a sign-in policy contains all the configuration that is used during sign-in, same goes for sign-up and other policies. You can configure things like claims to be included in the token or which providers are supported as well in a given policy, extended token configuration, multifactor authentication support, even extended page customization.<br />
+Be advised that each Active Directory feature requires a policy to be set, else it will not work. I will setup some policies later in this post to demonstrate this.</p>
+<h3>How is it different from standard Azure Active Directory</h3>
+<p>Aside from the technical details I mentioned earlier, the main difference between these two is the use case, I mean where should one use each of these options? When is it appropriate to choose one over the other?</p>
+<p>Azure Active Directory is intended for corporate scenarios to provide a SSO service for organizations and a central place to manage users within the organization. It's better suited on <em>internal</em> applications, such as integrating with Office 365 or other custom internal-used applications.</p>
+<p>Azure Active Directory B2C though fits better on <em>public</em> facing applications which deal with external users. This service is actually tailored for this purpose, with build-in features I mentioned earlier (social accounts, support on various open standards, etc.)</p>
+<h2>Azure Portal</h2>
+<p>To follow along, you need to have a Microsoft Azure subscription, in order to setup your Azure Active Directory tenant.If you don’t have, you can use the <a href="https://azure.microsoft.com/en-us/offers/ms-azr-0044p/">free trial</a> which provides €170 credit to spend for 30 days and 12-month free access to certain Azure services. I am going to use the free version of Azure AD anyways. I will create a new directory from scratch in following example.</p>
+<h3>Tenant setup</h3>
+<p>In your Microsoft Azure portal dashboard, look for the B2C resource and create a new Azure AD B2C tenant. I named my new directory <em>TWC AD B2C Demo</em> and the domain name for that directory is <em>twcadb2cdemo</em>. It automatically takes the postfix of <em>onmicrosoft.com</em>. It will take up to a minute for the new tenant to be created.</p>
+<p><a href="{{ site.baseurl }}/2018/06/create-tenant.png"><img class="alignnone size-full wp-image-1240" src="{{ site.baseurl }}/assets/2018/06/create-tenant.png" alt="" width="750" height="661" /></a></p>
+<p>As soon as it is ready, switch to that directory.<br />
+For better accessibility, I suggest to pin the Azure AD B2C resource on your dashboard.</p>
+<p><a href="{{ site.baseurl }}/2018/06/dashboard.png"><img class="alignnone size-full wp-image-1241" src="{{ site.baseurl }}/assets/2018/06/dashboard.png" alt="" width="750" height="540" /></a></p>
+<h3>Application setup</h3>
+<p>Next step is to create a registered application for this service, so it will be able to allow the application to authenticate its users. Click on the <em>Applications</em> option on the left hand side, under <em>Manage</em>.</p>
+<p><a href="{{ site.baseurl }}/2018/06/azure-ad-b2c-applications.png"><img class="alignnone size-full wp-image-1244" src="{{ site.baseurl }}/assets/2018/06/azure-ad-b2c-applications.png" alt="" width="750" height="441" /></a></p>
+<p>Then click on the <em>+ Add</em> button to create your application. I named my application <em>TWC Demo App</em> and it is a web app, so choose<em>Yes</em> from the option below. Regarding the reply URLs, let's for the moment add the root URL and I will come back later to change it. I will later add new reply URLs for each policy.</p>
+<p><a href="{{ site.baseurl }}/2018/06/azure-ad-b2c-application.png"><img class="alignnone size-full wp-image-1245" src="{{ site.baseurl }}/assets/2018/06/azure-ad-b2c-application.png" alt="" width="750" height="833" /></a></p>
+<h3>Policies setup</h3>
+<p>When looking on the Azure AD B2C resource panel, you might notice the policies on the left hand side. These are the policies we're going to configure for the demo application. Namely, we'll configure the Sign-up, Sign-in, Sign-up-in and Profile editing policies.</p>
+<p><a href="{{ site.baseurl }}/2018/06/azure-ad-b2c-policies.png"><img class="alignnone size-full wp-image-1243" src="{{ site.baseurl }}/assets/2018/06/azure-ad-b2c-policies.png" alt="" width="750" height="462" /></a></p>
+<h4>Sign up</h4>
+<p>First, create the Sign-up policy, and as the policy name suggests, this one is for configuring user's sign-up.<br />
+Click on the <em>Sign-up policies</em> menu option on the left, then click on the <em>+ Add</em> button. I will name this policy <em>Demo_sign_up</em> and Azure will add the prefix <em>B2C_1</em>, so the full name will be <em>B2C_1_Demo_sign_up</em>, which is going to be used later for the reply URL, as you'll to see in a bit.</p>
+<p><a href="{{ site.baseurl }}/2018/06/sign_up_policy_name.png"><img class="alignnone size-full wp-image-1247" src="{{ site.baseurl }}/assets/2018/06/sign_up_policy_name.png" alt="" width="316" height="500" /></a></p>
+<p>I now need to select the identity providers which are going to be used by the policy. At the moment, I don't have any other provider created, so the only option will be Email signup, so choose that one for now. I will revisit this policy later to add a GitHub identity provider.</p>
+<p>Next up is the Sign-up attributes. This is a list of attributes that we'd like to be collected during sign up. This is optional of course, but in this case I will select some attributes that I want the user to fill-in during his/her sign up, which will be the <em>Display name</em>, <em>Email Address</em>, <em>Given Name</em> and <em>Surname</em>.</p>
+<p><a href="{{ site.baseurl }}/2018/06/sign_up_policy_attributes.png"><img class="alignnone size-full wp-image-1248" src="{{ site.baseurl }}/assets/2018/06/sign_up_policy_attributes.png" alt="" width="750" height="302" /></a></p>
+<p>Finally, I would like to setup the application claims. By this option, we configure which claims we'd like the id token to include after a successful authentication. These claims are going to be visible in the Profile page that I am going to create in my simple web application, which is just listing all claims for an authenticated user.<br />
+I choose the same attributes and also the <em>Identity Provider</em> and <em>User is new</em> claims.</p>
+<p><a href="{{ site.baseurl }}/2018/06/sign_up_policy_claims.png"><img class="alignnone size-full wp-image-1249" src="{{ site.baseurl }}/assets/2018/06/sign_up_policy_claims.png" alt="" width="750" height="383" /></a></p>
+<p>Policy is ready, click create to proceed. The unique name of the policy is <em>B2C_1_Demo_sign_up</em>.<br />
+Let's quickly add this to the application's reply URLs. Go to the application created earlier and will add this as a reply URL. The full URL is <code>https://localhosts:44379/signin/B2C_1_Demo_sign_up</code>.</p>
+<p><a href="{{ site.baseurl }}/2018/06/app_sign_up_policy_reply_url.png"><img class="alignnone size-full wp-image-1251" src="{{ site.baseurl }}/assets/2018/06/app_sign_up_policy_reply_url.png" alt="" width="719" height="710" /></a></p>
+<p>Click save to update the application configuration.<br />
+Following the same procedure, I am going to create the rest of the policies.</p>
+<h4>Sign in</h4>
+<p>For the sign-in policy, click on the Sign-in policies option and create a new with the name <em>Demo_sign_in</em>. Again, select the email provider and the same as sign-up policy for application claims (<em>Display name</em>, <em>Email Address</em>, <em>Given Name</em>, <em>Identity Provider</em>, <em>Surname</em>).</p>
+<p><a href="{{ site.baseurl }}/2018/06/sign_in_policy.png"><img class="alignnone size-full wp-image-1252" src="{{ site.baseurl }}/assets/2018/06/sign_in_policy.png" alt="" width="313" height="401" /></a></p>
+<p>The policy unique name is going to be <em>B2C_1_Demo_sign_in</em>. In the same fashion, add this reply URL to the application's reply URLs.</p>
+<p><a href="{{ site.baseurl }}/2018/06/app_sign_in_policy_reply_url.png"><img class="alignnone size-full wp-image-1255" src="{{ site.baseurl }}/assets/2018/06/app_sign_in_policy_reply_url.png" alt="" width="683" height="738" /></a></p>
+<h4>Sign up in</h4>
+<p>The sign-up and sign-in policies are already defined. What is this <em>sign-up-in</em> policy about? Well, this can be explained better with code, but to put it simply, when you define the authentication schemes for the application, each policy will define its authentication scheme for the challenge. If I define sign-in as default challenge, what happens when I want to sign-up? The challenge will be incorrect, same the other way around. The system does not know what to pick. If you tried to access a protected resource as an anonymous user, you will receive an error (assuming that you haven't setup a default challenge scheme due to the reason explained earlier).<br />
+Using this policy as default challenge scheme, I let the system redirect me to a screen where I can choose to either sign in or sign up, if not already registered. So, rule of thumb is to use this policy as the default challenge scheme, while for sign-in or sign-up I have defined their own dedicated schemes.</p>
+<p>I will name this policy <em>Demo_sign_up_in</em>, choosing the default email identity provider, the same sign-up attributes and application claims I chose on the sign-up policy.</p>
+<p>Let's add the <em>B2C_1_Demo_sign_up_in</em> policy to the list of the reply URLs.</p>
+<p><a href="{{ site.baseurl }}/2018/06/app_sign_up_in_policy_reply_url.png"><img class="alignnone size-full wp-image-1257" src="{{ site.baseurl }}/assets/2018/06/app_sign_up_in_policy_reply_url.png" alt="" width="682" height="762" /></a></p>
+<h4>Profile</h4>
+<p>Last policy I am about to configure is the profile editing policy. This policy allows a user to edit his/her profile, of course based on the allowed attributes defined in configuration. I will name this policy <em>Demo_profile</em>. The identity provider remains the same and the application claims will be again the same as previously defined for this policy (<em>Display Name</em>, <em>Email Address</em>, <em>Given Name</em>, <em>Identity Provider</em>, <em>Surname</em>).<br />
+I want also to select the profile attributes that the user is allowed to modify during profile edit. I will allow <em>Display Name</em>, <em>Given Name</em> and <em>Surname</em> for editing.</p>
+<p><a href="{{ site.baseurl }}/2018/06/profile_policy.png"><img class="alignnone size-full wp-image-1258" src="{{ site.baseurl }}/assets/2018/06/profile_policy.png" alt="" width="750" height="351" /></a></p>
+<p>And finally, add this policy, <em>B2C_1_Demo_profile</em>, to the list of reply URLs.</p>
+<p><a href="{{ site.baseurl }}/2018/06/app_profile_policy_reply_url.png"><img class="alignnone size-full wp-image-1259" src="{{ site.baseurl }}/assets/2018/06/app_profile_policy_reply_url.png" alt="" width="712" height="787" /></a></p>
+<p>Great! With this last modification all the reply URLs are ready and we're almost finished with configuration in Azure B2C. The only thing left is to setup a third party identity provider, and for this one I have chosen GitHub.</p>
+<h3>Identity provider setup</h3>
+<p>Let's first create a new OAuth application on GitHub. Go to<a href="https://github.com/settings/developers">https://github.com/settings/developers</a>, and create a <em>New OAuth App</em>.</p>
+<p>The details to fill are trivial except of the last one, which is the Authorization callback URL. This is super important! As you see below, the callback URL is not the application's URL, rather uses a predefined URL that includes the Azure AD B2C tenant directory. It has the form:<code>https://login.microsoftonline.com/te/&lt;TENANT_DIRECTORY&gt;/oauth2/authresp</code></p>
+<p><a href="{{ site.baseurl }}/2018/06/github_oauth_app.png"><img class="alignnone size-full wp-image-1284" src="{{ site.baseurl }}/assets/2018/06/github_oauth_app.png" alt="" width="615" height="555" /></a></p>
+<p>That's it, return back to the Azure portal and register this identity provider. Under <em>Applications</em>, choose <em>Identity providers</em> option. Click the <em>+ Add</em> button to create a new Identity provider.</p>
+<p><a href="{{ site.baseurl }}/2018/06/identity_providers.png"><img class="alignnone size-full wp-image-1261" src="{{ site.baseurl }}/assets/2018/06/identity_providers.png" alt="" width="557" height="671" /></a></p>
+<p>The provider's name will be <em>TWC Demo GitHub</em> and choose <em>GitHub (Preview)</em> from the list of social identity providers.</p>
+<p><a href="{{ site.baseurl }}/2018/06/github_identity_provider.png"><img class="alignnone size-full wp-image-1262" src="{{ site.baseurl }}/assets/2018/06/github_identity_provider.png" alt="" width="631" height="895" /></a></p>
+<p>After selecting GitHub, you'll be prompted to enter the Client Id and Client Secret, which can be found in the OAuth App, created earlier on GitHub.<br />
+Finally, hit the <em>Create</em> button and the Identity Provider is ready to use. We need to visit each of the policies and include this provider to the list of available identity providers, so visit<em> sign-in</em>, <em>sign-up</em>, <em>sign-up-in</em> and <em>profile</em> policies, edit them and add the <em>TWC Demo GitHub</em> provider.</p>
+<p><a href="{{ site.baseurl }}/2018/06/policy_github_provider.png"><img class="alignnone size-full wp-image-1263" src="{{ site.baseurl }}/assets/2018/06/policy_github_provider.png" alt="" width="750" height="448" /></a></p>
+<p>After including TWC Demo GitHub to all of our listed policies, the configuration part is finished, and it's code time!</p>
+<h2>Application</h2>
+<p>In this demo, I will create a new ASP.NET Core 2.0 MVC application and I will start configuring the code required to secure protected resources listed in this app.<br />
+In order to get the complete code for this post, please visit my <a href="https://github.com/gdyrrahitis/bpost-apsnetcore-azure-ad-b2c">GitHub repository</a>.</p>
+<p>I have already build the tenant and I will use configuration from that tenant in my application.<br />
+I will start by registering the authentication middleware in my application and then register each policy using the OIDC protocol. In order to keep the user signed-in, I have to issue a locally authenticated cookie. Azure AD B2C work is to only authenticate the user, while app's responsibility is to keep him/her signed-in.<br />
+For each policy, I will create an endpoint which only job is to send a challenge over to Azure AD B2C. I have to create also a sign-out endpoint, which should destroy the local cookie and close the session in Azure AD as well.</p>
+<p>This application is going to have a single protected resource, which is going to be the <code>/profile</code> page, where all claims for the authenticated user are listed in screen.</p>
+<h3>Setup</h3>
+<p>First things first, remember I've setup 4 policies already, so I will list them in static class in order to use their names when needed.</p>
+<p>{% gist 06943bddad93ee28972b4dcfd074758f %}</p>
+<p>Also this application needs to run using HTTPS, so I have configured it to use HTTPS under port <code>44379</code>. In ASP.NET Core 2.1 you won't need this kind of configuration, it is provided by default.</p>
+<p>{% gist 9f750082e05b6975ace1ac0bae0b02cc  %}</p>
+<p>Let's now configure the policies by starting with the sign-up policy.</p>
+<h3>Sign-up</h3>
+<p>In <code>ConfigureServices</code> I will first start by calling the <code>AddAuthentication</code> method and then the <code>AddOpenIdConnect</code> to setup the sign-up policy. Azure AD B2C supports the OIDC protocol, thus the call to this method. Finally, a call to the <code>AddCookie</code> method is required in order to setup a local authentication cookie.</p>
+<p>{% gist 6efa0dc910e4397acbb5150058fd9841  %}</p>
+<p>For the <code>DefaultSignInScheme</code> and <code>DefaultAuthenticationScheme</code>, I choose cookie authentication, as I want to use a cookie for signing in users and authenticating incoming requests. See my previous post on <a href="https://georgedyrra.com/2018/03/07/asp-net-core-2-0-cookie-authentication-local-logins/">local logins</a> for more information.</p>
+<p>Let's look at the Open Id Connect options:</p>
+<ul>
+<li><strong>MetadataAddress</strong>. This is the URL of the policy (in this case for the sign-up policy). If you go back at the Azure portal and visit one of the policies, you will see that it comes with a URL on top. This URL is the same across all policies, the only difference is on the query string <code>p</code> value, which takes the name of the policy, in this case <em>B2C_1_Demo_sign_up</em>.<br />
+<a href="{{ site.baseurl }}/2018/06/sign_up_policy_url1.png"><img class="alignnone wp-image-1266" src="{{ site.baseurl }}/assets/2018/06/sign_up_policy_url1.png" alt="" width="370" height="336" /></a></li>
+<li><strong>ClientId</strong>. This is the application Id that is generated for the application defined as <em>TWC Demo App</em>.</li>
+<li><strong>ResponseType</strong>. This defines the response that the application awaits, in this case I want an OIDC identity token back.</li>
+<li><strong>CallbackPath</strong>. This option defines where the Azure AD B2C should redirect the user after authentication. That path needs to be available in the application's reply URL list. This path is handled by the OIDC authentication handler.</li>
+<li><strong>SignedOutCallbackPath</strong>. This option tells the Azure AD B2C to redirect the user to that address after signing out. This path is handled by the OIDC authentication handler.</li>
+<li><strong>SignedOutRedirectUri</strong>. This option tells the system to redirect the user to option defined at the end of the sign-up process. In this case, it will redirect the user to the application's home page.</li>
+<li><strong>TokenValidationParameters.NameClaimType</strong>. This option sets the name claim type to "name" claim, which is the <em>DisplayName</em> claim in this case.</li>
+</ul>
+<p>Once again, the <code>AddOpenIdConnect</code> call takes care of the authentication part. The call to the <code>AddCookie</code> will take care of the user sign-in for the application.</p>
+<p>Sign-up policy is now configured, I will create a controller which contains a <code>SignUp</code> action for the user to call. Notice that I don't need to do anything else rather return a Challenge. The <code>RedirectUri</code> is there to protect from endless redirections. I also provide the authentication scheme name, which is the same as the policy name, as second argument.</p>
+<p>{% gist 25915f1ce82c02c77a7436b6ee9e2c48  %}</p>
+<p>Sign-up is finished, three more to go.</p>
+<h3>Sign-in</h3>
+<p>This is a different policy, so I have to chain another call to <code>AddOpenIdConnect</code> method and provide the same options, with the only difference being the policy name. So, I have extracted a method for setting up Open Id Connect options which only varies the policy name.</p>
+<p>{% gist b5d93f0967a118810d5fb3b97298c78f  %}</p>
+<p>And now I chain the calls.</p>
+<p>{% gist 1c97cfab4e69e660ae91527e32e267dd  %}</p>
+<p>Now I need to create a sign-in endpoint, which sends a challenge back to Azure AD B2C. In <code>AuthController</code>, I've added a <code>SignIn</code> action. It follows the same pattern as the previously defined <code>SignUp</code> action.</p>
+<p>{% gist 036087f6e7ea7fbe66e92ed273f524d0  %}</p>
+<h3>Sign-up-in</h3>
+<p>In <code>HomeController</code>, I have added a protected resource, which is the <code>Profile</code> action. It just lists all claims for an authenticated user. In order to access <code>/profile</code>, one must be authenticated.</p>
+<p>{% gist 2ae0ab68ec9f63495df77da9d281733a  %}</p>
+<p>What happens if I try to access this protected resource while in anonymous mode? If I do that I will receive an exception, like the following:</p>
+<p><a href="{{ site.baseurl }}/2018/06/exception.png"><img class="alignnone size-full wp-image-1270" src="{{ site.baseurl }}/assets/2018/06/exception.png" alt="" width="750" height="610" /></a></p>
+<p>This happens because I haven't set up yet the <code>DefaultChallengeScheme</code>, so the system doesn't know what challenge scheme to pick up. This is where the sign-up-in policy comes into play. I will setup this policy as the default challenge scheme and register an OIDC handler for this as well.<br />
+The code in <code>ConfigureServices</code> now looks like this:</p>
+<p>{% gist 340ee7871a326f8ce40ea58045f0b42e  %}</p>
+<p>I don't need to set anything else, if I try to access <code>/profile</code> now, I will be redirected to a login screen, which contains also a link to sign-up.</p>
+<p><a href="{{ site.baseurl }}/2018/06/sign_up_in.png"><img class="alignnone size-full wp-image-1272" src="{{ site.baseurl }}/assets/2018/06/sign_up_in.png" alt="" width="750" height="356" /></a></p>
+<p>Profile editing is the last piece in the puzzle.</p>
+<h3>Profile</h3>
+<p>Using the profile editing policy, the authenticated user will be able to edit his/her profile. You might be wondering though, do I need an Edit screen of some sort? The answer is <strong>no</strong>! Azure AD B2C already provides an edit screen with the attributes you selected, listed and ready to be edited. But in case you don't like the default layout, you are free to create a custom edit screen and use this instead. For the purposes of this post, we'll stick with the defaults.</p>
+<p>By now, you should already know what's the next step, and you guessed correctly, we'll need to chain another call to the <code>AddOpenIdConnect</code> method, to register the OIDC handler for the profile editing policy.</p>
+<p>{% gist 840e5db24d00e2ebd7a0981e205bbd6a  %}</p>
+<p>And now, I need to add an endpoint which returns a challenge for the profile policy scheme. I create a new action called <code>Profile</code>, in <code>AuthController</code>. This action returns a <code>Challenge</code> response and the <code>RedirectUri</code> property ensures that the user will be either redirected back from where he was in the application or if there is no <code>returnUrl</code>, back to home page.</p>
+<p>{% gist 8638a1124f010fb83b6f889888bf7197  %}</p>
+<p>Now the user needs a link to this action in order to kick-off profile editing. In the <code>Profile.cshtml</code> view, I've added a link to this action.</p>
+<p>{% gist a716e20150815dd2b6bfd50d33ad6ec6  %}</p>
+<p>I am almost ready, but the application misses a vital feature, which is the ability to sign out. Let's work on that next.</p>
+<h3>Sign Out</h3>
+<p>In previous posts I have mentioned that when you define a sign out action, it should be a POST action rather GET. Reason behind this, is that Chrome pre-fetches GET requests to speed up browsing. This would result in a premature sign out for the user, with you not even noticing! I usually recommend to have a sign out screen or dialog, where the user is prompted to respond if he/she is truly willing to sign out, and a POST action, where the actual sign out happens. Let's take a look in the POST sign out action.</p>
+<p>{% gist 6d07f61a9c7957065820a3a37c93e787  %}</p>
+<p>As usual, I first sign out from the local cookie authentication session and as a next step I sign out from the Azure AD B2C Open Id Connect authentication session. It is important to do both, you don't want to leave the OIDC session open.</p>
+<p>Also, notice something unusual, I get the value of the "<code>tfp</code>" claim, which is an authentication scheme, and I sign out using that scheme. Why do that when I can just call the <code>HttpContext.SignOutAsync()</code> method? The problem is that this method needs to receive an authentication scheme to sign out from. But in our case here, I have more than one policies, I have a sign-up, a sign-in, a profile policy and so on and so forth. Azure AD B2C makes my life easier, by including a claim in the authentication token that contains the name of my policy. By getting this policy name, I can be sure that I sign out from the correct policy. This is the reason I used the same policy name as the authentication scheme for each policy that I registered in the <code>ConfigureServices</code> method.</p>
+<h3>Failure events</h3>
+<p>Let's go back in the profile editing policy.</p>
+<p>There is a slight problem with configuration for this one. If the user navigates to the profile editing page and decides to cancel the action, an exception will be thrown, like the following:</p>
+<p><a href="{{ site.baseurl }}/2018/06/exception_profile.png"><img class="alignnone size-full wp-image-1274" src="{{ site.baseurl }}/assets/2018/06/exception_profile.png" alt="" width="750" height="389" /></a></p>
+<p>Don't worry, there is not something wrong with our code. The problem is that there is no handler for the cancellation scenario and cancelling this action results in a remote failure. So, you can handle this by registering for the <code>OnRemoteFailure</code> event and redirect back to your application. Let's see that in code:</p>
+<p>{% gist 9703cac741d442b0537bd9e17b1c830c  %}</p>
+<p>So, I create a new <code>OpenIdConnectEvents</code> object and setup a listener on the <code>OnRemoteFailure</code> event. When that event occurs, I redirect the user back to the home page, handling the response manually. I could do other things like log it or whatnot, but this is a simple demo and I intend to keep it that way.<br />
+In fact, I would like to handle this event for the other policies as well, so I will create a local variable <code>events</code>, which is an instance of <code>OpenIdConnectEvents</code>, handling the <code>OnRemoteFailure</code> event. Then, I assign this to the <code>Events</code> property of options parameter, in <code>AddOpenIdConnect</code> method.</p>
+<p>{% gist 0ab532acc91e75de5b69df8abd4ef3f2  %}</p>
+<h2>Putting all these together...</h2>
+<p>Testing sign-in with GitHub social identity provider</p>
+<p>[video width="1920" height="1080" mp4="https://georgedyrra.files.wordpress.com/2018/06/signin.mp4" autoplay="true" loop="true"][/video]</p>
+<p>Testing sign-in-out and profile editing with GitHub social identity provider</p>
+<p>[video width="1920" height="1080" mp4="https://georgedyrra.files.wordpress.com/2018/06/profile.mp4" autoplay="true" loop="true"][/video]</p>
+<h2>Summary</h2>
+<p>This was a a post with lots of information about Azure AD B2C on how to simply configure your tenant, setup a web application and manage identity for that app.<br />
+By the end of this post you learned about the differences of Azure AD and Azure AD B2C and in which scenarios each is appropriate to use. I also went through the Azure Portal and showed you how to create a new Azure AD B2C resource, register your application, setup policies and even third party social identity providers. The key thing to remember is to list each policy that you have in the reply URLs for the registered application, else nothing will work.</p>
+<p>After exploring Azure Portal and successfully configuring the Azure AD Tenant, I moved to Visual Studio and created a new ASP.NET Core 2.0 MVC web application. I configured each policy separately and incrementally shaped my code. I started first by defining the sign-up policy and created a controller which could issue a challenge against Azure AD B2C for a user to sign-up. I continued with rest of the policies, sign-in, sign-up-in and profile editing. The catch with the sign-up-in is to use this policy as the default challenge scheme in order to properly challenge anonymous users. Finally, I had to handle some <code>OpenIdConnectProtocol</code> exceptions which generated by cancelling actions on profile, sign-up and similar policies, so for that reason, I showed you how to handle gracefully such errors via the <code>OnRemoteFailure</code> event. You should also be careful in the sign out action, be sure to sign out the local authentication cookie and also the Open Id Connect session.</p>
+<p>If you liked this blog, please like and share! For more, follow me on <a href="https://twitter.com/giorgosdyrra">Twitter</a>.</p>
+<hr />
+<p>This post is part of the <em>ASP.NET Core 2.0 Authentication series</em>.</p>
+<ol>
+<li><a href="https://wp.me/p7uERY-85">ASP.NET Core 2.0 Cookie Authentication - Local logins</a></li>
+<li><a href="https://wp.me/p7uERY-aP">ASP.NET Core 2.0 Authentication with local logins - Implementing claims transformation</a></li>
+<li><a href="https://wp.me/p7uERY-aX">ASP.NET Core 2.0 Authentication with local logins - Responding to backend changes</a></li>
+<li><a href="https://wp.me/p7uERY-aV">ASP.NET Core 2.0 Authentication with local logins - Implementing custom authorization policies</a></li>
+<li><a href="https://wp.me/p7uERY-9V">ASP.NET Core 2.1 Authentication with social logins</a></li>
+<li><a href="https://wp.me/p7uERY-aR">ASP.NET Core 2.0 Authentication with social logins - Implementing a profile store</a></li>
+<li><a href="https://wp.me/p7uERY-ib">ASP.NET Core 2.0 Authentication with Azure Active Directory</a></li>
+<li><a href="https://wp.me/p7uERY-aT"><strong>ASP.NET Core 2.0 Authentication with Azure Active Directory B2C</strong></a></li>
+<li>ASP.NET Core 2.0 Authentication, IdentityServer4 and Angular</li>
+</ol>

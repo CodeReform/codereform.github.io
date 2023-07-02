@@ -1,0 +1,98 @@
+---
+layout: post
+title: Mocking a class dependency which casts into a derived type using Moq
+date: 2016-09-13 16:06:08.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET"
+- C#
+tags:
+- Moq
+- Unit testing
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _publicize_job_id: '26786912487'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2016/09/13/mocking-a-class-dependency-which-casts-into-a-derived-type-using-moq/"
+---
+<p>Let's say we have the following, one class named <code>Implementor</code> which has an <code>IParentInterface</code> dependency.</p>
+<p>In method <code>DoWork</code> ofthe class, we call the interface's method, but we also call another method, which comes bycasting the dependency to a derived interface.<br />
+All, good, we goahead and create a unit test project, adding the <a href="https://www.nuget.org/packages/Moq/">Moq</a> package as well, in order to mock dependencies.<br />
+<!--more--></p>
+<p>Code is as follows:</p>
+<h4>Implementor.cs</h4>
+<pre class="prettyprint"><code>public class Implementor
+    {
+        private readonly IParentInterface _parent;
+
+        public Implementor(IParentInterface parent)
+        {
+            _parent = parent;
+        }
+
+        public void DoWork()
+        {
+            // Do work with parent interface method
+            _parent.ParentWork();
+
+            // Do work with child interface method
+            ((IChildInterface)_parent).ChildWork();
+        }
+    }</code></pre>
+<h4>IParentInterface.cs</h4>
+<p>Now, both interfacesare simple, they all have a void method without any incoming parameters.</p>
+<pre class="prettyprint"><code>public interface IParentInterface
+    {
+        void ParentWork();
+    }</code></pre>
+<h4>IChildInterface.cs</h4>
+<p>This interface innherits from <code>IParentInterface</code>, but it has its own contract as well.</p>
+<pre class="prettyprint"><code>public interface IChildInterface: IParentInterface
+    {
+        void ChildWork();
+    }</code></pre>
+<p>That poses a problem, because we want to make some unit tests that mock the dependency and verify the call to the underlying methods.How are we going to test this? If we don'tmockboth we are going to receive an error, whichis going to break our tests.</p>
+<h3>Solution</h3>
+<p>Solution to this problem is the .<code>As&lt;T&gt;()</code> method of the Moq library. You can find more in the <a href="https://github.com/Moq/moq4/wiki/Quickstart#advanced-features">Github Wiki</a>.<br />
+Method .<code>As&lt;T&gt;</code> is used to implement multiple interfaces into a single mock.</p>
+<p>Our setup in the <code>TestFixture</code> (I am using NUnit as testing framework in the example, but you are free to use any of your choice) is like this:</p>
+<pre class="prettyprint"><code>private Mock&lt;IParentInterface&gt; _parentMock;
+
+        [SetUp]
+        public void Setup()
+        {
+            _parentMock = new Mock&lt;IParentInterface&gt;();
+        }</code></pre>
+<p>I just create a mockinstance of the <code>IParentInterface</code>, the one that I am going to inject into the class.<br />
+Let's see this in action in an actual test, I am going to test the <code>DoWork()</code> method and verify that <code>ParentWork()</code> as well as <code>ChildWork()</code> are called once:</p>
+<pre class="prettyprint"><code>[Test]
+        public void DoWork_VerifyParentWorkAndChildWorkCalls_Test()
+        {
+            // Arrange
+            _parentMock.Setup(m =&gt; m.ParentWork()).Verifiable();
+            _parentMock.As&lt;IChildInterface&gt;().Setup(m =&gt; m.ChildWork()).Verifiable();
+            var implementor = new Implementor(_parentMock.Object);
+
+            // Act
+            implementor.DoWork();
+
+            // Assert
+            _parentMock.Verify(m =&gt; m.ParentWork(), Times.Once());
+            _parentMock.As&lt;IChildInterface&gt;().Verify(m =&gt; m.ChildWork(), Times.Once());
+        }</code></pre>
+<p>The unit test method follows the <a href="http://c2.com/cgi/wiki?ArrangeActAssert">AAA pattern</a>,as you can see by the comments, in order to maintain a clean visual representation of the unit test.<br />
+In the actual implementation now, first I setup the <code>ParentWork()</code> method and mark it as Verifiable, which means that when I call the <code>Verify</code> method on that mock object, I will be able to tellif that was called or not.<br />
+In order to test the derived interface method, I used the .<code>As&lt;IChildInterface&gt;</code>, which essentially is implementing the <code>IChildInterface</code> into the <code>_parentMock</code> object. I mark this as verifiable, then I instantiate the<code>Implementor</code>, passing the <code>_parentMock</code> object.<br />
+In the Assert part, I verify that these methods were actually called. In order to check that the <code>ChildWork</code> was called, I need to implement the <code>IChildInterface</code> to the mock object again, calling the <code>Verify</code> method next.</p>
+<h3>Summary</h3>
+<p>Ifyour mock object can cast tosomething else, like aderived interface, and you need to test this implementation within your Act, the .As&lt;T&gt;() method of Moq library is your friend.<br />
+Code from this post can be found in this <a href="https://github.com/gdyrrahitis/.net-unit-tests-moq">Github repository</a>.</p>
+<p>&nbsp;</p>

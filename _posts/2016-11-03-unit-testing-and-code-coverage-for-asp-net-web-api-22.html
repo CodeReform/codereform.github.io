@@ -1,0 +1,323 @@
+---
+layout: post
+title: Unit testing and code coverage for ASP.NET Web API (2/2)
+date: 2016-11-03 20:51:04.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET"
+- C#
+tags:
+- "ASP.NET Web API"
+- Moq
+- Unit testing
+- NUnit
+- TDD
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _publicize_job_id: '28536722448'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2016/11/03/unit-testing-and-code-coverage-for-asp-net-web-api-22/"
+---
+<p>This post continues on<a href="https://georgedyrra.wordpress.com/2016/11/03/unit-testing-and-code-coverage-for-asp-net-web-api-12/">Unit testing and code coverage for ASP.NET Web API (1/2)</a>.<br />
+Much about the topic isinspired from the truly magnificent book "The Clean Coder: A Code of Conduct for Professional Programmers" of Robert C. Martin Series, which of course, I definitely recommend.</p>
+<h3>Specifying the low level architecture</h3>
+<p>Professional software developers always test their code. It is part of our daily job, we should be proud and flexible on writing tests. It isa proof that our code actually follows our intent, at least on system'slow level. There are many more tests to be followed, composing a testing strategy, but this post isgoing to focus solely onone aspect of such strategy, the unit tests.<br />
+<!--more--><br />
+TLDR; Code can be found<a href="https://github.com/gdyrrahitis/aspnet-webapi-owin-selfhost/tree/unit-tests-branch">here</a>.</p>
+<h3>The three lawsof TDD</h3>
+<p>Robert C. Martin, aka Uncle Bob, has defined some three simple rules that describeTest Driven Development.</p>
+<ol>
+<li>You are not allowed to write any production code unless it is to make a failing unit test pass.</li>
+<li>You are not allowed to write any more of a unit test that is sufficient to fail; and compilation failures are failures.</li>
+<li>You are not allowed to write any more productioncode than is sufficient to pass the one failing unit test.</li>
+</ol>
+<p>Rule #1 says that you have to write your test first, rather than jumping directly to your business code.<br />
+Rule #2 is more peculiar as it states that you should not write more of a unit test if that unit test fails. You need to stop, switch to production code and make it pass.<br />
+Rule #3 states that you shouldonly write enough production code to make the test compile or pass. No more.</p>
+<p>These three laws lock you into a cycle that is, perhaps, thirty seconds long. You switch from unit test to production code and vice versa. Adding a bit to the test code, adding a bit to the production code. This cycle, for some people may seem slow.Some, have the feeling that they mightwrite more is they don't write tests at all. But this is an illusion, we tend to write bad code without tests and we spend a lot of time in manual tests. This is the recipefor disaster. We (and probably other people) are not happy with ourselves, in the end.<br />
+Search for <a href="https://www.google.ie/webhp?sourceid=chrome-instant&amp;ion=1&amp;espv=2&amp;ie=UTF-8#q=tdd%20kata">TDD kata's</a> over the internet, see other people's views and comparisons onworking on specific problems with or without TDD. Then try to work on kata's by yourself, using each approach. Try to ride the beast andyou will be amazed by the end result.</p>
+<h3>Going green</h3>
+<p>In order to create some unit tests you need to download the following nuget packages:</p>
+<ul>
+<li>NUnit3. A unit testing framework. Provides all tools needed to write tests, set them up, tear them down, etc.</li>
+<li>Moq. A mocking framework.Provides necessary API to mock interface or abstract dependencies into modules.</li>
+</ul>
+<h5>Anatomy</h5>
+<p>A unit testcan be a class decorated by the <code>TestFixtureAttribute</code>. Your test methods must be decorated bythe <code>TestAttribute</code> in order to be identified as tests. If you need to setup some code before running a test, you should create a method with is decorated by the <code>SetUpAttribute</code> and there initialize all yourcode needed for the underlying tests.</p>
+<pre class="prettyprint"><code>[TestFixture]
+    public class DemoTests
+    {
+        [Test]
+        public void UnitOfWork_StateUnderTest_ExpectedBehavior_Test()
+        {
+            // Arrange
+            // Initialization code here...
+
+            // Act
+            // Actual calls...
+
+            // Assert
+            // Assertions here...
+        }
+    }</code></pre>
+<p>Test code above follows naming standards. It also follows the AAA (Arrange, Act, Assert) pattern. It is a patternfor writing clean tests, with parts of code related to each other grouped together. What is that it makes a test clean though? Readability is the answer. We want the tests to be readable because their intent is not only to test code but to <em>document it</em> as well, which means other individuals will have to go through them.<br />
+Initialization code is grouped together in an imaginary <em>Arrange</em> group. Same for <em>Act</em>and <em>Assert</em> group.Those groups are labeled by one line comments. If you want, you can omit those comments, and separate the groupswith a newline. Point is toseparate conceptual affinity groups in order to maximize test's readability.</p>
+<p>I have written sometests for this application, some of them will be shown here, some won't make it for brevity's sake. I would suggest to go to the repository and check yourselves to get the whole picture.<br />
+There are tests for<em>People.Domain</em> project, which consist of ApplicationDbContextTests and RepositoryTests.<br />
+There are tests for <em>People.Services</em> project,which consist of PersonServiceTests.<br />
+There are tests for <em>People.SelfHostedApi</em> project, which consist of tests for controllers, action selection, routing, custom authorization server.</p>
+<p>Let'sexplore some various code samples from them.</p>
+<h5>Testing controllers</h5>
+<p>In <em>People.SelfHostedApi.Tests</em> project,under the Controllers directory you can find tests for Web API controllers.</p>
+<p>Let's see PersonController unit tests. This controller receives an <em>IPersonService</em> type, through constructor injection. So, in tests I need to make sure I pass a mocked object of this type, controlling calls to this object.</p>
+<h5>Setup dependencies</h5>
+<pre class="prettyprint"><code>private Mock&lt;IPersonService&gt; _personService;
+
+        [SetUp]
+        public void Setup()
+        {
+            _personService = new Mock&lt;IPersonService&gt;();
+        }</code></pre>
+<p>This creates a mock of the IPersonService type. The <code>_personService </code>field, will be fed into PeopleController's constructor. See the snippet bellow:</p>
+<pre class="prettyprint"><code>[Test]
+        public void PeopleController_Get_PeopleFromService_ReturnsOkResultWithPeopleListAsContent_Test()
+        {
+            // Arrange
+            var people = CreatePeopleList();
+            _personService.Setup(m =&gt; m.GetPeople()).Returns(people.AsQueryable());
+            var controller = new PeopleController(_personService.Object);
+
+            // Act
+            var result = controller.Get() as OkNegotiatedContentResult&lt;List&lt;Person&gt;&gt;;
+
+            // Assert
+            IsNotNull(result);
+            AreEqual(people.Count, result.Content.Count);
+        }</code></pre>
+<p>The <code>_personService</code> mock object exposes the mocked object instance by accessing the its<code>Object</code> property. Before I inject it into the controller, I fist made sure to mock the <code>GetPeople()</code> method of the service, as this is the one I care about in this scope. This method will return a mockedresult, a list of Person objects.<br />
+In act section, I call the actual method I want to test.<br />
+Inassert section, I justmake sure that code does what I expect it to do.</p>
+<h5>IHttpActionResult</h5>
+<p>In the act section, from previous example, theGet action returns an <code>IHttpActionResult</code>. In order to get the command along with the contents it returns we need to use the correct typefrom <code>System.Web.Http.Results</code>namespace. Web API teammade this feature available in Web API 2, in order to make unit testing easy.</p>
+<p>For OK results with content, we expect <code>OkNegotiatedContentResult&lt;T&gt;</code>. <code>T</code> represents the type of content that is returned. Beware through, if you put the wrong <code>T</code> type intest, you are going to get a null value. For example, if you return a collection, don't put <code>OkNegotiatedContentResult&lt;IEnumerable&lt;Person&gt;&gt;</code> as thisgoing to be null. If you return a <code>List&lt;T&gt;</code> as a content, put a<code> List&lt;T&gt;</code> in the type. Same goes for other types like <code>CreatedNegotiatedContentResult&lt;T&gt;.</code><br />
+Now, for OK results without content (empty) use the <code>OkResult</code> type to cast. Same goes for other types that return empty content, like <code>BadRequestResult</code>, <code>NotFoundResult</code>, etc.</p>
+<p>This is atestto verify that a NotFoundResult is returned to the client, when person with specific id is not found:</p>
+<pre class="prettyprint"><code>[Test]
+        public void PeopleController_Get_PersonByIdFromService_PersonCouldNotBeFound_ReturnsNotFoundResult_Test()
+        {
+            // Arrange
+            const int id = 1;
+            _personService.Setup(m =&gt; m.GetPerson(It.Is&lt;int&gt;(s =&gt; s == id))).Returns(() =&gt; null);
+            var controller = new PeopleController(_personService.Object);
+
+            // Act
+            var result = controller.Get(id) as NotFoundResult;
+
+            // Assert
+            IsNotNull(result);
+        }</code></pre>
+<p>In case of<code>BadRequestResult</code> you cast it to this type when you return an empty BadRequest without content, like the following</p>
+<pre class="prettyprint"><code>if (person == null)
+                return BadRequest();</code></pre>
+<p>In case you return a BadRequest with content, you cast a <code>BadRequestErrorMessageResult</code></p>
+<pre class="prettyprint"><code>if (id &lt; 0)
+                return BadRequest($&quot;{nameof(id)} is not valid.&quot;);</code></pre>
+<p>And the corresponding test case:</p>
+<pre class="prettyprint"><code>[Test]
+        public void PeopleController_Delete_PersonIdIsNotValid_ReturnsBadRequest_Test()
+        {
+            // Arrange
+            var controller = new PeopleController(_personService.Object);
+
+            // Act
+            var result = controller.Delete(-5) as BadRequestErrorMessageResult;
+
+            // Assert
+            IsNotNull(result);
+            AreEqual(&quot;id is not valid.&quot;, result.Message);
+        }</code></pre>
+<h5>Testing actions which do not dependon controller context</h5>
+<p>All tests demonstrated above, testcontroller actions which do not depend on controller context at all. This means,there is no need to create an <code>HttpConfiguration</code>, or <code>HttpControllerContext</code>, or <code>HttpRequestMessage</code> or anything like that, just call the controller's action as normal through code and test the behavior/result returned.</p>
+<h5>Testing actions which depend on controller context</h5>
+<p>These tests are similar to previous ones, but with one difference. You are responsible to setup a context for the controller under test. Youactually need that in order to get the test passing, or else you are going to receive some <code>NullReferenceException</code>, <code>ArgumentNullException</code> exceptions.<br />
+So, let's see this method from PersonController, which creates a new Person, returns a 202 Created response code, alongwith the resource URI.</p>
+<pre class="prettyprint"><code>public IHttpActionResult Post(Person person)
+        {
+            if (person == null)
+                return BadRequest();
+
+            _service.Create(person);
+            return Created($&quot;{Request.RequestUri.AbsoluteUri}/{person.Id}&quot;, person);
+        }</code></pre>
+<p>Have you noticed the problem yet? The Created method receives a URI in string and a Person object. The problem is that thecreation of the URI depends on the <code>Request</code> object of the controller, which happens to be of<code>HttpRequestMessage</code> type. So, it's required to create a new instance of the PersonController and pass an <code>HttpRequestMessage</code> instance to its <code>Request</code> property.<br />
+The following test does exactly this:</p>
+<pre class="prettyprint"><code>[Test]
+        public void PeopleController_Post_PersonToService_ReturnsCreatedResult_Test()
+        {
+            // Arrange
+            var person = CreateDefaultPersonObject();
+            var request = new HttpRequestMessage
+            {
+                RequestUri = new System.Uri(BaseUri)
+            };
+            var controller = new PeopleController(_personService.Object)
+            {
+                Request = request
+            };
+
+            // Act
+            var result = controller.Post(person) as CreatedNegotiatedContentResult&lt;Person&gt;;
+
+            // Assert
+            IsNotNull(result);
+            AreEqual($&quot;{BaseUri}/1&quot;, result.Location.ToString());
+            AreEqual(Id, result.Content.Id);
+            AreEqual(Name, result.Content.Name);
+            AreEqual(Age, result.Content.Age);
+        }</code></pre>
+<p>In the assertion conceptual affinity block, except of asserting the result content, there is assertion on the current location the new resource is created at. Thelocation consists of the absolute URI of the request plus the Id of thePerson object created.</p>
+<h5>Testing routes</h5>
+<p>Routing in ASP.NET Web API is based on the <code>IHttpRoute</code> interface. If you open the source code of the IHttpRoute interface, you will see various properties and methods, but the main point of interest here is the <code>GetRouteData</code> method.By this, it is easy to break down the URL to its components and parameters, which is exactly what the following test is doing. Currently, there is only one route configured, which is the Default route, a pretty standard one to match a controller by its name, with an optional Id parameter.<br />
+As a side note, the following test is a data driven test, meaning test can be divided tomore than one test cases, whereas each runs individually, passing input to the actual test. This can be achieved using the <code>TestCaseAttribute</code> of NUnit.</p>
+<pre class="prettyprint"><code>[Test]
+        [TestCase(&quot;http://localhost:3001/invalid/route&quot;, &quot;GET&quot;, false, null, null)]
+        [TestCase(&quot;http://localhost:3001/api/people/&quot;, &quot;GET&quot;, true, &quot;people&quot;, null)]
+        [TestCase(&quot;http://localhost:3001/api/people/&quot;, &quot;POST&quot;, true, &quot;people&quot;, null)]
+        [TestCase(&quot;http://localhost:3001/api/people/1&quot;, &quot;PUT&quot;, true, &quot;people&quot;, &quot;1&quot;)]
+        [TestCase(&quot;http://localhost:3001/api/people/1&quot;, &quot;GET&quot;, true, &quot;people&quot;, &quot;1&quot;)]
+        [TestCase(&quot;http://localhost:3001/api/people/1&quot;, &quot;DELETE&quot;, true, &quot;people&quot;, &quot;1&quot;)]
+        [TestCase(&quot;http://localhost:3001/api/user/&quot;, &quot;GET&quot;, true, &quot;user&quot;, null)]
+        public void DefaultRoute_Returns_Correct_RouteData_Test(string url, string method, bool exists, string controller, string id)
+        {
+            // Arrange
+            var config = SetupHttpConfiguration();
+            var request = SetupHttpRequestMessage(url, method);
+
+            // Act
+            var routeData = config.Routes.GetRouteData(request);
+
+            // Assert
+            AreEqual(exists, routeData != null);
+            if (exists)
+            {
+                AreEqual(controller, routeData.Values[&quot;controller&quot;]);
+                AreEqual(id ?? (object)RouteParameter.Optional, routeData.Values[&quot;id&quot;]);
+            }
+        }</code></pre>
+<p>Lots of cases here. Each of the parameters on the TestCaseAttribute are passed as actual parameters to the Test. You need to create anHttpConfiguration object, which registers the routes (in this case the default route), as well as to create an HttpRequestMessage with the appropriate method and URL.<br />
+In HttpConfiguration initialization, make sure to call the <code>EnsureInitialized</code> method on the configuration object, after registering the required routes.These actions take place in two following public utility methods. Reason? Readability, as the test above seems much cleaner without having all these methods internals. All you need is some expressive names.</p>
+<pre class="prettyprint"><code>public static HttpConfiguration SetupHttpConfiguration()
+        {
+            var config = new HttpConfiguration();
+            WebApiRouteConfig.Register(config);
+            config.EnsureInitialized();
+            return config;
+        }
+
+        public static HttpRequestMessage SetupHttpRequestMessage(string url, string method)
+        {
+            var httpMethod = new HttpMethod(method);
+            return new HttpRequestMessage(httpMethod, url);
+        }</code></pre>
+<h5>Testing controller and action selection</h5>
+<p>Last bit to cover in thisrather lengthy blog, is about controller and action selection in Web API. You need to make sure that the correct controller and correct action is selected on each request. You can test the routes, but you won't be sure which controller and action is selected. Methods in Web API, when the design is Restful, are selected based onthe request URI and HTTP method, which differentiates from classic RPC calls to specificmethods.<br />
+There is a way to test this functionality as well, due to <code>IHttpControllerSelector</code> and <code>IHttpActionSelector</code> interfaces, which are used by the framework to find the appropriate controller and action.</p>
+<p>There are two ways to write those tests, one is to rely on the routing result to be correct, hence takes a form of integration test, while the other is to provide your own route data to decouple the test from routing. First option is much simpler, with little setup, and is the onechosen to test this behavior.</p>
+<p>Look at the following example:</p>
+<pre class="prettyprint"><code>[Test]
+        [TestCase(&quot;http://localhost:3001/api/people/&quot;, &quot;GET&quot;, typeof(PeopleController), &quot;Get&quot;)]
+        [TestCase(&quot;http://localhost:3001/api/people/1&quot;, &quot;GET&quot;, typeof(PeopleController), &quot;Get&quot;)]
+        [TestCase(&quot;http://localhost:3001/api/people/1&quot;, &quot;PUT&quot;, typeof(PeopleController), &quot;Put&quot;)]
+        [TestCase(&quot;http://localhost:3001/api/people/1&quot;, &quot;DELETE&quot;, typeof(PeopleController), &quot;Delete&quot;)]
+        [TestCase(&quot;http://localhost:3001/api/people/&quot;, &quot;POST&quot;, typeof(PeopleController), &quot;Post&quot;)]
+        public void CorrectControllerAndActionAreSelected_Test(string url, string method, Type controller, string action)
+        {
+            // Arrange
+            var config = SetupHttpConfiguration();
+            var actionSelector = config.Services.GetActionSelector();
+            var controllerSelector = config.Services.GetHttpControllerSelector();
+            var request = SetupHttpRequestMessageRequest(url, method);
+            var routeData = SetupRouteData(request, config);
+            SetupRequestProperties(request, routeData, config);
+
+            // Act
+            var controllerDescriptor = controllerSelector.SelectController(request);
+            var context = SetupHttpControllerContext(config, routeData, request, controllerDescriptor);
+            var actionDescriptor = actionSelector.SelectAction(context);
+
+            // Assert
+            AreEqual(controller, controllerDescriptor.ControllerType);
+            AreEqual(action, actionDescriptor.ActionName);
+        }</code></pre>
+<p>Look at the URI's tested. Yousee that some URI's are similar for different actions, with only difference being the HTTPmethod.This test makes sure that theappropriate action is picked up on a request.<br />
+Also, noticehow IHttpActionSelectorand IHttpControllerSelector instances are fetched, through the <code>HttpConfiguration.Services</code> object, which is an IoC container, implementing the Service Locator pattern, of type <code>ServicesContainer</code>. This class is designed to resolve dependencies of the framework itself, so it's easy for us to fetch the actionand controller selector instances.</p>
+<p>Then,a<code>ControllerDescriptor</code> is fetched from <code>SelectController</code> method, of course by relying on the request. In order to get the<code>ActionDescriptor</code>, an <code>HttpControllerContext</code> is required (see the utility methods below).</p>
+<p>Finally, the assertion is performed on the controller type and the action name to ensure the correct controller and action of that controller are selected.</p>
+<p>The utilitymethods forthe test aren't something special, one creates a new <code>HttpControllerContext</code>, while the other an <code>HttpConfiguration</code> as shown earlier.</p>
+<pre class="prettyprint"><code>private static HttpControllerContext SetupHttpControllerContext(HttpConfiguration config, IHttpRouteData routeData,
+            HttpRequestMessage request, HttpControllerDescriptor controllerDescriptor)
+        {
+            var context = new HttpControllerContext(config, routeData, request)
+            {
+                ControllerDescriptor = controllerDescriptor
+            };
+            return context;
+        }</code></pre>
+<h3>Code coverage</h3>
+<p>In order toget some reports on code coverage you need to use the following nuget packages:</p>
+<ul>
+<li>OpenCover (currently using the 4.6.519 version)</li>
+<li>ReportGenerator (currently using the 2.4.5 version)</li>
+<li>NUnitConsoleRunner (currently using 3.4.1 version)</li>
+</ul>
+<p>Now, we want to have report for each test project in the solution, while the solution holds 3 different test projects.<br />
+Steps are the following:</p>
+<ol>
+<li>Create a .bat file in your project root.</li>
+<li>On the file go to properties (Alt+Enter) and select<strong>Copy if newer</strong> for the <strong>Copy to Output directory</strong> option.</li>
+<li>Paste the following code</li>
+</ol>
+<pre class="prettyprint lang-text"><code>&quot;..\..\..\packages\OpenCover.4.6.519\tools\OpenCover.Console.exe&quot; -target:&quot;..\..\..\packages\NUnit.ConsoleRunner.3.4.1\tools\nunit3-console.exe&quot; -targetargs:&quot;NAME_OF_TEST_PROJECT.dll&quot; -filter:&quot;+[NAME_OF_PROJECT]NAME_OF_PROJECT*&quot; -excludebyattribute:&quot;System.CodeDom.Compiler.GeneratedCodeAttribute&quot; -register:user -output:&quot;_CodeCoverageResult.xml&quot;
+@pause
+
+&quot;..\..\..\packages\ReportGenerator.2.4.5.0\tools\ReportGenerator.exe&quot; &quot;-reports:_CodeCoverageResult.xml&quot; &quot;-targetdir:_CodeCoverageReport&quot;;
+@pause
+
+:RunLaunchReport
+start &quot;report&amp;quot; &amp;quot;_CodeCoverageReport\index.htm&quot;;
+exit /b %errorlevel%</code></pre>
+<p>Code above does three things.</p>
+<ol>
+<li>Uses OpenCover tool, in conjuction with NUnit3 to create a coverage result in an XML format.</li>
+<li>Uses the ReportGenerator tool, to get the coverage result, which is an XML file and convert human readable, pleasing HTML reports.</li>
+<li>Launches browser to show the report.</li>
+</ol>
+<p>Take extra care on the OpenCover, NunitConsoleRunner and ReportGenerator version numbers. Be sure to use the correct ones. Go to your packages folder in root and double check.<br />
+Replace theNAME_OF_TEST_PROJECT with your test project name (my test project for example is People.Services.Tests) and on filter, replace the NAME_OF_PROJECT with the project name that you are currently testing (I am testing the People.Services project in People.Services.Tests).</p>
+<p>Rest of the code is pretty standard, the ReportGenerator is running on the same directory as OpenCover created the _CodeCoverageResult.xml file. It picks it up, creates a new directory _CodeCoverageReport and places all the HTML reports there.</p>
+<p>Last three lines of code, are actuallystarting the default browser, to open the ReportGenerator's HTML report.<br />
+Make sure to run the .bat file from your project's /bin/CONF/ directory (CONF might be your Debug or Release configuration, whatever you are building against).</p>
+<p><strong>A little bit aboutfilters</strong></p>
+<p>You need to add filters in your OpenCover configuration, you need to instruct the tool what to look for and what to exclude, or else your reports will be skewed. You use the <code>-filter</code>switch.</p>
+<p><code>-filter: "+[People.Services]People.Services*"</code>. This adds a specific namespace to the coverage. It adds alltypes in People.Services assembly, that start with the People.Services namespace. If you want to exclude something use the - symbol istead.<br />
+<code>-filter:"+[People.Domain]People.Domain* -[*]People.Domain.Migrations* -[*]People.Domain.Context.BaseDbContext* -[*]People.Domain.Entities*"</code>. This filter includes all types under People.Domain namespace in People.Domain assembly, but excludes every type that is under <code>People.Domain.Migrations</code>, <code>People.Domain.Context.BaseDbContext</code>, <code>People.Domain.Entities</code> namespaces.</p>
+<p>For more information look at the project's <a href="https://github.com/OpenCover/opencover/wiki/Usage">wiki</a>, <a href="https://github.com/OpenCover/opencover/wiki/Usage#understanding-filters">understanding filters</a>.</p>
+<p><img class="alignnone size-large wp-image-335" src="{{ site.baseurl }}/assets/2016/11/people-domain-tests.png?w=700" alt="people-domain-tests" width="700" height="332" /><br />
+Listing 1-1. People.Domain.Tests coverage report. 100%</p>
+<p><img class="alignnone size-large wp-image-336" src="{{ site.baseurl }}/assets/2016/11/people-services-test.png?w=700" alt="people-services-test" width="700" height="295" /><br />
+Listing 1-2. People.Services.Tests coverage report. 100%</p>
+<p><img class="alignnone size-large wp-image-337" src="{{ site.baseurl }}/assets/2016/11/people-selfhostedapi-tests1.png?w=700" alt="people-selfhostedapi-tests" width="700" height="429" /><br />
+Listing 1-3. People.SelfHostedApi.Tests coverage report. 90.5%</p>
+<p>Some code slips away from the coverage and is seen as untested, but it's code thatdoesn't have a value to be tested, like theframework's code. Possibledefects from such code can be easily tracked inupper level tests, like acceptance, integration, system or exploratory tests.</p>
+<h3>Summary</h3>
+<p>In this post, welearnt how to author unit tests forthe class libraries, representing different application layers, as well as authoring unit tests for ASP.NET Web API. We also testedWeb API specific components, like routes, action selection, introducing NUnit's data driven tests.</p>
+<p>Finally, we learnt how toinstall and configure OpenCover and ReportGenerator tools, make them work together with the tests and code, in order to provide code coverage reports.</p>
+<p>In the next session I am going to talk a little bit more about BDD and integration testing in ASP.NET Web API.I am also going to explore testing in OWIN pipeline.</p>

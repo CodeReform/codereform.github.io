@@ -1,0 +1,157 @@
+---
+layout: post
+title: Learning data structures - Arrays in C#
+date: 2018-06-26 18:45:30.000000000 +01:00
+type: post
+image: https://georgedyrra.files.wordpress.com/2018/05/back-to-school-paper-colored-paper-stationery-159519.jpeg?w=1024
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET"
+- C#
+tags:
+- data structures
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/06/26/learning-data-structures-arrays-in-c/"
+---
+<p>This is the first post in the series on <em>Learning data structures</em>. What this series aims is to provide basic knowledge on some popular data structures and their algorithms, their use cases and how such knowledge can unleash your potential into thinking and solving problems. In this series I'll focus primarily in the C# language but I might discuss some topics in the F# language as well, for the most part though I will materialize theory in C# code.</p>
+<p>In this post I will discuss about the most fundamental data structure in computer science, arrays.</p>
+<p><!--more--></p>
+<h3>Source code</h3>
+<p>You can find sample code and code that is outlined in this article on my GitHub <a href="https://github.com/gdyrrahitis/bpost-learning-data-structures-arrays">repository</a>.</p>
+<h2>Who is this series for</h2>
+<p>This series is for literally anyone who is interested into learning more about data structures and algorithms. You do not need to have prior experience in any language or know anything about data structures in general. My aim through this blog is to provide you enough information to understand more about this computer science area, learn how to use these tools and of course how they can be prove useful for your day to day problems.<br />
+Experienced programmers of course are welcomed, you might be able to fresh up your knowledge on some topic or be able to share your valuable thoughts through the comment section area.</p>
+<p>I will be using C# mostly through the series and might be using F# in some cases when it makes sense. But data structures and underlying algorithms are independent of the programming language, so the same principles can be applied to the programming language of your choice. The syntax might be different, the heart of the implementation stays the same.</p>
+<h2>Intro to data structures</h2>
+<p>In simplified terms, data structures are all about managing data in computer's memory or disk. This set includes constructs like arrays, linked lists, binary trees, heaps, hashtables and others among them. Implementations of these constructs is done via algorithms, from simple to very complex ones, which manage the underlying data, like for example the algorithm for searching a particular element or sorting data in a particular order.</p>
+<p>Understanding of data structures can greatly impact the way you tackle problems. By having some basic knowledge on the topic, it is easier to solve problems that resemble real world scenarios/entities.</p>
+<h4>Real world data</h4>
+<p>Real world data can be represented by data structures. This might be an employee record in an HR system, or temperatures stored in meteorological service. You want to find the most efficient way to store these kind of data, or have the most efficient way to retrieve data. This depends on the underlying design and appropriate data structure picked.</p>
+<h4>Tools</h4>
+<p>Data structures are not only for storing data though, as they can be proven very useful tools for programmers, again describing beautifully real world problems, like for example a queue in a super market or SMS messages that travel over the network to their recipient and wait in a queue to be delivered. Such tools can be a stack or a queue for example. You might be surprised by the power of such tools, as some of them might be great help in solving problems that could be very complex to solve otherwise, in just a few lines!</p>
+<h4>Design</h4>
+<p>As mentioned earlier, data structures greatly affect application design, with this having again to do with modeling of the real world. It is easy to model a queue in a hospital for example, to triage patients and allocate priority to more urgent incidents, resembling a priority queue, designing of course the system as such. In same way, it is easy to model a network, with its nodes and connections between the nodes with a graph.<br />
+As you see, such constructs, do make your life easier when you have to make particular decisions in design and by understanding them, you will be able to identify these designintricacies and apply when appropriate.</p>
+<h2>Intro to arrays</h2>
+<p>Array is the most well known and fundamental data structure there is and is included in every programming language. It is very convenient to learn about data structures by starting with arrays first, as it is a fundamental construct that most (abstract) data structures depend on.</p>
+<p>An array is a static, sequential data set, of one single type, in which every single element is accessed through an index. Each item therefore, which is placed in an array, can be located by its unique sequential index, which falls between the array bounds. The bounds of an array mark its limits (lower, upper) in which one can locate and access elements. Having an array of size N, its bounds fall within the following range:</p>
+<p><code>0 &lt;= i &lt; N</code></p>
+<p>With <code>i</code> being the array index, <code>0</code> being the lower limit and <code>N</code> being the upper limit (not-inclusive).<br />
+For example, having declared an array <code>a</code> of size 5, accessing the element in index 2, will be <code>a[2]</code> (more on array syntax coming shortly). An attempt to access an index that falls outside of the valid bounds range would produce a run-time error, so index must be a positive number, &gt;= 0 and &lt; N.</p>
+<p>An array is characterized as static as once an array is declared, and it is always declared with its size, it cannot be altered. An array is an object which means that when it is allocated, a reference to this object is stored somewhere in memory, binding to a memory block (how, it depends on the run-time environment) and the variable holds the reference to this object. The memory block that is set for the array cannot be extended once it is created, that means you cannot change the array size. If you wish to do that, you need to create a new array, with new size defined.</p>
+<p>Regarding performance, an array of unsorted items has the pros of quick insert, which is O(1), using the <a href="https://en.wikipedia.org/wiki/Big_O_notation">Big-O notation</a>, and quick retrieve, of course if the index of the item is known, also O(1).<br />
+On the other hand its cons are the slow search, which leads to a table scan and it might take O(N) time, with N being the total size of the array. Arrays are also slow on deleting an item, because the item needs to be searched (if the index is not known) but also because the array might needs to rearrange its items, something that might need at worst case half of the array items to be moved. Finally, the last downside of an array in general is its static length that I discussed earlier.<br />
+The situation is improved for searches in sorted arrays, in O(logN) time, but insert is slow, decreasing to O(N) because we need to find the place where we are going to insert the new item and move the other items up.</p>
+<h2>C# Arrays</h2>
+<p>In following lines I will show you how arrays work in C# language.</p>
+<h3>Single-dimensional</h3>
+<h4>Array declaration</h4>
+<p>As I mentioned earlier, arrays are objects in C# and in order to be initialized you must use the <code>new</code> keyword.<br />
+{% gist 11cbc5355304d2690456a7b1a8087fbb %}</p>
+<p>This creates an integer array of single dimension, which size is 10. The compiler reads the brackets <code>[]</code> andunderstands that this object is an array. The type that the array stores precedes the brackets. So the example above is telling the compiler: "Please create a new array with length 10, that stores integer types and put a reference on that array to the <code>array</code> variable".</p>
+<p>The C# compiler can infer the array type using the <code>var</code> keyword. The compiler will understand what type is the right part of the expression and infer that type.<br />
+{% gist 59187b1fe94f0a5b5adb3fa9e2474a68  %}</p>
+<p>These two examples are doing the same thing, initializing an array with length equal to 10.</p>
+<h4>Array initialization</h4>
+<p>In the examples above, I declare a new array of a certain length but I do not add any data, which means the array will be filled with the default values of the array type (<code>default(T)</code>), which is <code>int</code> in this case. The default value of an integer is 0.<br />
+To initialize the array with some data, we can use the array initializers that are supported by the language.<br />
+{% gist 373bdfdc9fbc1d606d251bfb6db90e1d  %}</p>
+<p>You need to provide the same amount of elements as the size of the array, which is 5 in the example above. Failing to do so will result in a compile-time error.</p>
+<p>The C# compiler is more clever that this and can infer the array size by the items you provide, so you can omit declaring its size explicitly.<br />
+{% gist be27d5ccf4229ab9b5416f45409c9da2  %}</p>
+<p>You can even omit the type <code>int</code>, the C# compiler will know from the elements type. Don't forget, an array is a fixed size data structure of one single type, you can't have multiple types like <code>int</code>, <code>float</code> and <code>string</code> in the same array, only one type. The compiler just goes through the declared elements, figures that the type is int and infers the variable type on the left hand side.<br />
+{% gist 61f18f360c2ae86975c5ee46a7110a6e  %}</p>
+<p>All these examples produce the same result, the compiler is just making our life a little bit easier.</p>
+<h4>Accessing elements</h4>
+<p>To access an element you should know its index, for example to get the value 10, of the previously declared array, you should use the 0 index.<br />
+{% gist 7bd8462c6ae5395fa9195efe91206e98  %}</p>
+<p>Don't forget, an array starts at 0 and the last item is on the N-1 index, with N being the total size.<br />
+So for the previously declared array, the <code>array[4]</code> will return 1.</p>
+<p>And what about the scenario that I would like to run through all array elements? A loop is something that I could use, most typically a <code>for</code> loop is what I need when working with arrays.<br />
+The following example prints all array items in the console:<br />
+{% gist 9f2b8f7de8f4ee9edf8683c4223e8823  %}</p>
+<p>This loop runs from 0 to 4, so it visits all the array items. Notice that I hard-typed the array size. There is a better way to get its size and this is by its <code>Length</code> property. You can update the loop above to use the <code>array.Length</code> property and it will work like before.<br />
+{% gist ae7825dc186bd8bb79166d899d58f3e5  %}</p>
+<h4>Insert</h4>
+<p>You can insert a value in the array in a similar way you access an element, so you need to know the index. The array element is on the left hand-side of the expression and the value to insert on the right hand-side.<br />
+{% gist 5acd29ed3df449ff21606bb1a38a342d  %}</p>
+<p>You can also do such thing while looping (except the <code>foreach</code> loop). In the following example I will update the previous table to store the square of each element.<br />
+{% gist b222d1c873d9f6399077d30628d29e5c  %}</p>
+<p>Notice that I store the current array element in local variable and then I assign the result of this element square to the array in the same index. This updates the cell value.</p>
+<p>A more advanced example and a typical one in array introduction would be the coin flip emulation, which can be described through <a href="https://en.wikipedia.org/wiki/Bernoulli_trial">Bernoulli trials</a>. If we flip a coin N times, the possibility to have K times heads would be known as <a href="https://revisionmaths.com/advanced-level-maths-revision/statistics/normal-approximations">normal approximation</a>.</p>
+<p>$latex \left(\begin{array}{c}N\\ k\end{array}\right)\frac{1}{2^N}\approx\frac{e^{-(k-N/2)^2/N}}{\sqrt{\pi N/2}} $</p>
+<p>More on the example and its results below.</p>
+<p>{% gist b21ee54c8dd7f20e45b71cc8fccc9684  %}</p>
+<p>Check out this <a href="https://dotnetfiddle.net/CtsxmW">fiddle</a> to find the complete code sample and some visuals from the coin flips, which show a Gaussian curve. Notice how this problem is tackled in this imperative code implementation. I create a new table, named <code>frequency</code>, which stores the frequency of having heads for a coin flip.<br />
+I have two loops, one outer and one inner. The outer loop is looping through the experiments for a coin flip, while the inner loop is actually performing a coin flip. So for example, if <code>flips</code> is equal to 32 and <code>experiments</code> is equal to 1000, I will flip a coin 32 times for each experiment, which equals to 32000 coin flips.<br />
+Notice the <code>mutable</code> times variable, it is initialized in the inner loop and increases by one when coin is heads. After finishing flipping the coin 32 times, the inner loop exits and the outer loop now continues to the next experiment. Simultaneously, I increase the value in the frequency table. So, if in the previous experiment, I had heads 10 times, then <code>frequency[10]</code> will increase by one.<br />
+And finally, I display the results in a histogram.</p>
+<p>To find a solution to this problem in a declarative programming style with F#, look at <a href="https://codereview.stackexchange.com/a/195215/106114">TheQuickBrownFox answer</a> in codereview.stackexchange.com.</p>
+<p>We can now move forward to more concise examples. I mentioned that arrays can handle operations like insert, search or delete. I've shown examples of inserting or accessing single or each element in an array earlier, let's now take a look on search and delete in a class that is using an array to handle these operations. The example might look dull and trivial but it will help to demonstrate these.</p>
+<h5>Search</h5>
+<p>You can find the <a href="https://github.com/gdyrrahitis/bpost-learning-data-structures-arrays">complete code on GitHub</a>, let's see what's inside search.<br />
+{% gist c0a1298cb509cb20dde0e2cf4f31124d  %}</p>
+<p>So, the method receives a search key and it iterates over the array to find it. In case it is found, it's returned, otherwise -1 is returned to indicate failure. Pretty simple code, I run through all elements and compare the key against them. That's called table scan.</p>
+<h5>Delete</h5>
+<p>This operation is a bit more complex.<br />
+{% gist 8269697304f233016f48df76037662c9  %}</p>
+<p>I perform a table scan here also to find the element, but if I find it, I move all the keys after the index, upwards to fill the gap.</p>
+<p>Looking at these operations, I'm sure you understand why insert and retrieve are fast, while search and delete are slow in unsorted arrays. In insert (assuming that you are inserting an element using an index without performing any other operation like search or moving items) you just change the value referenced in one cell to just another value, which is constant in time, O(1). But in a search operation, you must look for the key, so you perform a table scan, which in large arrays might take a lot. Same in the delete operation, a search was first conducted and then I had to move all the elements below the deleted, up one index, so I had to perform copy operations as well.</p>
+<h3>Multi-dimensional</h3>
+<p>Arrays that have 2 dimensions usually describe problems related to 2D space, like finding the (x, y) coordinates on a plane for a single point.</p>
+<p>Mostly all principles that apply to 1D arrays, apply to 2D as well, but here we have an extra rank and a bit different syntax.<br />
+Every array has a rank that represents the number of dimensions in the array. For 1D arrays the rank equals to 1, for 2D equals to 2, etc. Array is called single-dimensional for having one rank, and for greater ranks it is called multi-dimensional. Rank is a property on the array object.<br />
+To declare a 2D array<br />
+{% gist 46c822011e9a29624c8efc0f4760ca65  %}</p>
+<p>So the declared type is an integer array and to define the new rank, I have to put a comma between the brackets. For 3D arrays it would be <code>int[,,] array = new int[10, 5, 8]</code> and so on and so forth.</p>
+<p>The right hand-side creates a new instance of the array and inside the brackets I define the size for reach rank.<br />
+Initializing with values should be similar with syntax on 1D arrays.<br />
+{% gist baa90e718dd269b3216191d2c06b0d4f  %}</p>
+<p>This array has two dimensions, <code>2x3</code>, with 2 being the total rows and 3 being the total columns.<br />
+To go through all of its elements you need to loop through each dimension, so having two dimensions means that you have to loop twice, with one loop nested.<br />
+{% gist d20af015d9fdf7e9b284a7e1fa643d62  %}</p>
+<p>The <code>GetUpperBound</code> method shown above, receives the rank number (which is zero based) and returns the highest index for that rank (<code>Length - 1</code>). This method is slow, thus I don't want it to be called every now and then in the <code>for</code> loop, that's why I called it once to store the length for reach rank in a variable outside the <code>for</code> loop.</p>
+<h3>Jagged</h3>
+<p>A jagged array is a special data structure that's based on arrays. This is a more flexible solution, compared to a multi-dimensional array, as the inner array does not have to have the same length for each row. That said, a jagged array might help to reduce memory consumption in certain scenarios.</p>
+<p>A 2D representation with a jagged array would be<br />
+{% gist cb87c7566737d63356075be00ab67565  %}</p>
+<p>Notice that I use double brackets, <code>[][]</code>! The second pair of brackets defines the inner 1D array.<br />
+For 3D jagged arrays it would be:<br />
+{% gist e890538a90184c7cdfddbd113d96ad19  %}</p>
+<p>So, as seen in examples, I define the outer array's length, but not the inner's. I can do this later, thus I can create inner arrays of variable size.<br />
+{% gist e92a4fe3cbc364d2485bd9ebb68383b2  %}</p>
+<p>An example of jagged array usage, could be a traffic camera that records car plates for each vehicle passing each day of the week.<br />
+So, we should create a jagged array of 7 rows. Each row represents an array of string and the inner array, which is the value of each row, will store the vehicle registration number of each passing vehicle.</p>
+<p>{% gist 4fd6ef9552f55901625140d36cd91f64  %}</p>
+<h2>Summary</h2>
+<p>In this first article, part of the <em>Learning data structures</em> series, I went through the most fundamental data structure of all, the array. I started by discussing what data structures are and how they can help a programmer store real world data, model real world problems and use a subset of them as programming tools to complete an objective.</p>
+<p>You have, by now learned what is an array and what does it mean for the compiler and the underlying run-time environment to allocate one. An array is a sequential set of data that is allocated in a memory block which cannot be extended, therefore its static nature. That kind of data structure is perfect for situations where data size is known beforehand and the inserts must be fast and not in a particular order.</p>
+<p>Furthermore, I've been through arrays in the C# language, a mainstream object oriented, multi-paradigm programming language, demonstrating how an array can be created, initialized, how we can locate each item through its index and operations like search and delete.</p>
+<p>Finally, I discussed about multi-dimensional arrays and jagged arrays, showcasing their syntax and some usage examples. Multi-dimensional arrays have more than one rank and are used in problems related to spaces like 2D or 3D. Jagged arrays are a kind of multi-dimensional array but they have variable inner array sizes compared to standard multi-dimensional arrays, which can provide performance gains in certain scenarios.</p>
+<p>If you liked this blog post, please like, share and subscribe! For more, follow me on Twitter <a href="https://twitter.com/giorgosdyrra">@giorgosdyrra</a>.</p>
+<hr />
+<p>This post is part of the <em>Learning data structures</em> series</p>
+<ol>
+<li><a href="https://wp.me/p7uERY-hE"><strong>Learning data structures - Arrays in C#</strong></a></li>
+<li>Learning data structures – Search algorithms for arrays</li>
+<li>Learning data structures – Tuples in C# and F#</li>
+<li>Learning data structures – Stack in depth in C#</li>
+<li>Learning data structures – Queue in depth in C#</li>
+<li>Learning data structures – Priority queue</li>
+<li>Learning data structures – Simple sorting algorithms</li>
+<li>Learning data structures – Linked lists</li>
+<li>Learning data structures – Doubly linked lists</li>
+<li>Learning data structures – Recursive algorithms</li>
+<li>Learning data structures – Advanced sorting algorithms</li>
+<li>Learning data structures – Binary trees</li>
+<li>Learning data structures – Heap</li>
+<li>Learning data structures – Hash tables</li>
+<li>Learning data structures – Graphs</li>
+</ol>
+<p>&nbsp;</p>

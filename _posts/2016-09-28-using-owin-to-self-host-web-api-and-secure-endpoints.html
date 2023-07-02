@@ -1,0 +1,312 @@
+---
+layout: post
+title: Using OWIN to self-host Web API and secure endpoints
+date: 2016-09-28 23:03:08.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET"
+- Owin
+tags:
+- ASP.NET Web API
+- C#
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _publicize_job_id: '27314733206'
+  _wpas_skip_17994663: '1'
+  _wpas_skip_17995347: '1'
+  _wpas_skip_18002326: '1'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2016/09/28/using-owin-to-self-host-web-api-and-secure-endpoints/"
+---
+<p>In this post we are going to talk a little bit about OWIN. What is it, how can we use it with ASP.NET Web API to expose API endpoints, as well as how to secure those endpoints.</p>
+<p>The application uses OWIN to self-host the Web API as well as ASP.NET Identity as underlying membership mechanism. Users can fetch public data from /api/people endpoint, as well as secured privatedata from /api/user endpoint. The latter one is to demonstratesecurity in Web API.<br />
+<!--more--></p>
+<h2>Brief discussion on OWIN</h2>
+<p>OWIN stands for Open Web Interface for .NET. It definesa standard communication interface between .NET web servers and web applications, proving a specification to work with. This specification can be found <a href="http://owin.org/">here</a>.<br />
+It enables implementation offunctionality without having to take dependency on the hosting framework, with this abstraction being specified in many other web platforms such Ruby, Node.js or Python.</p>
+<p>OWIN specificationdefines parts for:</p>
+<ul>
+<li>Host</li>
+<li>Server</li>
+<li>Middleware</li>
+<li>Application</li>
+</ul>
+<p>Host is a process. It can be a windows application, a windows service, anything that is responsible of providing a runtime platform for incoming requests.<br />
+Into the host, is the server, which accepts HTTP requests and sends responses using the OWIN runtime. Server and Application communicate through the OWIN pipeline, which makes thispossible by the use of a number of middlewares that are registered on it.<br />
+Lastly, Application is implemented in a framework such as ASP.NET Web API or NancyFx andgenerates a response back to the client, whichtravels through the pipeline, passing all intermediate middleware, to the server and from server to the client.</p>
+<p>OWIN Katana is the Microsoft implementation of OWIN specification. The package Microsoft.Owin contains the Katana implementation.<br />
+This isthe exact implementationI am going to demonstrate in the next lines.<br />
+So, next up, the Katana implementation is going to be used to self-host an ASP.NET Web API as well as some middleware to secure API endpoints.</p>
+<h2>Setup</h2>
+<p>I usedVisual Studio and madea new Console Application. The application structure is like so:</p>
+<pre class="prettyprint lang-text"><code>People.SelfHostedApi
+|--App_Start
+|----IdentityConfig.cs
+|----WebApiRouteConfig.cs
+|--Controllers
+|----PeopleController.cs
+|----UserController.cs
+|--Database
+|----ApplicationDbContext.cs
+|--Infrastructure
+|----Formatters
+|------BrowserFormatter.cs
+|--Migrations
+|----Configuration.cs
+|--Models
+|----Person.cs
+|--Security
+|----CustomAuthorizationServerProvider.cs
+|--App.config
+|--Program.cs
+|--Startup.cs</code></pre>
+<p>&nbsp;</p>
+<h3>Packages needed</h3>
+<p>Throughnuget package manager and I installed the following packages:</p>
+<ul>
+<li>Microsoft.AspNet.WebApi.OwinSelfHost</li>
+<li>Microsoft.Owin.Security.OAuth</li>
+<li>Microsoft.AspNet.Identity.Owin</li>
+<li>Microsoft.AspNet.Identity.EntityFramework</li>
+</ul>
+<p>With all these, the setup is done.It's time to proceed to code.</p>
+<h2>Hosting the API</h2>
+<p>Ineed a way tohost theapplication. Then I remember the parts of the OWIN specification from before. Regarding thehosting,I needto build the process that is running the application. This will be a Windows Console Application. In the Program.cs, in Main method theAPI is kicked-off by using the <code>WebApp</code> class, calling the <code>Start</code> method, which takes the URL of the application andan entry point of the OWIN configuration (Startup class).</p>
+<pre class="prettyprint"><code>class Program
+    {
+        static void Main(string[] args)
+        {
+            const string url = &quot;http://localhost:3001&quot;;
+            using (WebApp.Start&lt;Startup&gt;(url))
+            {
+                Console.WriteLine(&quot;Application deployed and hosted in {0}&quot;, url);
+                Console.WriteLine(&quot;Press any key to terminate...&quot;);
+                Console.ReadLine();
+            }
+        }
+    }</code></pre>
+<p>I am wrapping the call of the <code>Start</code> method in a using statement, as this is a disposable entity and I call the <code>Console.ReadLine</code> method inside its body in order to keep the application open.</p>
+<p>Nothing else to see here, let's move to the juicy bits of the Startup class.</p>
+<pre class="prettyprint"><code>public class Startup
+    {
+        public static void Configuration(IAppBuilder app)
+        {
+            var configuration = new HttpConfiguration();
+            WebApiRouteConfig.Register(configuration);
+            app.UseWebApi(configuration);
+        }
+    }</code></pre>
+<p>A class like this, that implements the OWIN Katana must have a static void methodwith the nameConfiguration, and take a single parameter of type <code>IAppBuilder</code>.<br />
+See the <code>UseWebApi</code>extension method? These kind of methods are nothing more than extensions to the <code>IAppBuilder.Use</code> method, which is used to add middleware into the OWIN pipeline. In fact, OWIN is all about the pipeline. The components that are registered into itknow nothing about each other, but they manage to work together, by walking down the road in the pipeline until the final component is reached. Then, up they go back to the client, climbing the pipeline once again, bottom-up.</p>
+<p>First thing first, the Server part is now implemented. The OWIN Katana acts as a server, as it can accept HTTPrequests and send responses, even without using the Web API middleware, you just need to add middleware to handle requests and responses.<br />
+Where is the Application though? For this part, most critical is to create a new <code>HttpConfiguration</code>instance. HttpConfiguration controls whatever hasto do with routing, serializers, formatters, etc. It is a dependency for the Web API middleware,<code>UseWebApi</code> extension method, which is putting the last piece in the OWIN puzzle, the Application part.<br />
+With all these in place,we have an application that can receive HTTP traffic, process the requests, and reply back to the client with appropriate HTTP responses.<br />
+Concluding with the Web API configuration, I register the routes for Web API to handle by calling the<code>WebApiRouteConfig.Register</code>, pretty much standard routine, no need to go there.</p>
+<p>Le'tscreate a simple <code>ApiController</code> and expose some endpoints to see this in action.</p>
+<p>This is a simple controller, that returns a list of people or finds a person by id.</p>
+<pre class="prettyprint"><code>public class PeopleController : ApiController
+    {
+        private readonly List&lt;Person&gt; _people;
+
+        public PeopleController()
+        {
+            _people = new List&lt;Person&gt;
+            {
+                new Person { Age = 15, Id = 1, Name = &quot;John Doe&quot;},
+                new Person { Age = 22, Id = 2, Name = &quot;Jane Doe&quot;}
+            };
+        }
+
+        public IHttpActionResult Get()
+        {
+            return Ok(_people);
+        }
+
+        public IHttpActionResult Get(int id)
+        {
+            var person = _people.Find(p =&gt; p.Id == id);
+            return Ok(person);
+        }
+    }</code></pre>
+<p>Running the application, I test it by running a Postman instance, hitting the GET and GET/{id} endpoints.</p>
+<p>Listing 1-1. GET /api/people<br />
+<img class="alignnone size-large wp-image-163" src="{{ site.baseurl }}/assets/2016/09/screenshot_1.png?w=700" alt="screenshot_1" width="700" height="376" /></p>
+<p>Listing 1-2. GET /api/people/2<br />
+<img class="alignnone size-large wp-image-164" src="{{ site.baseurl }}/assets/2016/09/screenshot_2.png?w=700" alt="screenshot_2" width="700" height="346" /></p>
+<p>That's a fairly simple example using an in-memory collection of people. If we wanted to fetch those data from a different kind of store (database, XML file,CSV file, whatever, it doesn't matter) we'd only have to implement a store and use its methods.</p>
+<h3>Securing endpoints and using ASP.NET Identity</h3>
+<p>In order to make this more interesting, I am going to add another controller which will fetch the currentauthenticated user details andreturn them back to the client. Also, people data will be persisted in a database, which needs to be accessed in order to fetch them, so that said, I'm going tomake use of the ASP.NET Identity featuresfor the features described.<br />
+I just create a class <code>Person</code> to represent theentity.</p>
+<pre class="prettyprint"><code>public class Person
+    {
+        [Key]
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public int Age { get; set; }
+    }</code></pre>
+<p>And a simpledatabase context.</p>
+<pre class="prettyprint"><code>public class ApplicationDbContext: IdentityDbContext&lt;IdentityUser&gt;
+    {
+        public ApplicationDbContext(): base(&quot;DefaultConnection&quot;, throwIfV1Schema: false) { }
+
+        public static ApplicationDbContext Create()
+        {
+            return new ApplicationDbContext();
+        }
+
+        public DbSet&lt;Person&gt; People { get; set; }
+    }</code></pre>
+<p>Nothing fancy. Just a quick note on <code>IdentityDbContext</code>. It is located at Microsoft.AspNet.Identity.EntityFramework assembly and it an implementation of the <code>DbContext</code> class which gives you access to the underlying context (database). This class manipulates the Entity Framework model internally so it sets proper tables, proper relationships to manage users, roles, claims, etc. For creating your own store you need toderive from that class.<br />
+With Entity Framework Code First Migrations Itheninitialize thestore with the schema and possible seed values (I have already done that, refer to the code on Github for more).<br />
+Finally I added a custom <code>UserManager</code> in order to initialize the custom store, which uses the <code>ApplicationDbContext</code> I made earlier, again Iwon't go through that now.</p>
+<p>I need to go to some modifications now in existing code, as well as bring in life the UserController. Let's go first with the controllers, then to Startup class and finally to a simple custom authorization server provider implementation.</p>
+<h4>UserController</h4>
+<pre class="prettyprint"><code>[Authorize]
+    public class UserController : ApiController
+    {
+        private ApplicationUserManager _userManager;
+        public ApplicationUserManager UserManager =&gt; 
+            _userManager ?? (_userManager = Request.GetOwinContext().GetUserManager&lt;ApplicationUserManager&gt;());
+
+        public IHttpActionResult Get()
+        {
+            var id = User.Identity.GetUserId();
+            var user = UserManager.FindById(id);
+            return Ok(user);
+        }
+    }</code></pre>
+<p>In this controller, I have only one simple GET method which returns all details about a logged-in user, for demonstration purposes.<br />
+The controller is decorated with the<code>AuthorizeAttribute</code> to enforce Authentication.<br />
+The ApplicationUserManageris the one I created earlier. In order to get it, I get the OwinContext associated with the<code>HttpRequestMessage</code>, using the <code>GetUserManager</code> extension method of IOwinContext, to get the <code>ApplicationUserManager</code> instance, registered to OwinContext (see below). <em>Using C# 6 Expression Bodied property for UserManager property.</em><br />
+If a user is authenticated, the /api/user endpointis accessible.Depending on the claims registered on the current context, the IPrincipal.User is populated, along with the IIdentity.Identity. These properties belong to the System.Security namespace. The<code>Microsoft.AspNet.Identity</code> package implements some extension methods on them, more specifically on <code>IIdentity</code> interface, which are very useful, methods like<code>GetUserId</code> and<code>GetUserName</code> which fetch the user id or username for the current authenticated context. Having the userId or username we can query the <code>AspNet.Users</code> table through the <code>UserManager</code> instance and fetch the associated user.</p>
+<h4>PeopleController</h4>
+<pre class="prettyprint"><code>public class PeopleController : ApiController
+    {
+        private readonly ApplicationDbContext _context;
+
+        public PeopleController()
+        {
+            _context = new ApplicationDbContext();
+        }
+
+        public IHttpActionResult Get()
+        {
+            var people = _context.People.ToList();
+            return Ok(people);
+        }
+
+        public IHttpActionResult Get(int id)
+        {
+            var person = _context.People.Find(id);
+            return Ok(person);
+        }
+    }</code></pre>
+<p>The highlighted lines in code above are the changes in the <code>PeopleController</code> for fetching data from the database. Nothing fancy here either, I just need a reference to ApplicationDbContext in order to communicate with the underlying store to fetch people data.<br />
+<em><strong>Note that this is not the recommended way tointroduce the ApplicationDbContext in PeopleController. Thisleads to coupling and violates the 'D' of SOLID. Also,this code is not testable and we are going to tackle this subject in futureposts. To make thissolution more elegant, the dependency should be passed through the constructor, in an abstract format, as an interface, using a DI container.</strong></em></p>
+<h4>Startup.Configuration</h4>
+<pre class="prettyprint"><code>public class Startup
+    {
+        public static void Configuration(IAppBuilder app)
+        {
+            app.CreatePerOwinContext&lt;ApplicationDbContext&gt;(ApplicationDbContext.Create);
+            app.CreatePerOwinContext&lt;ApplicationUserManager&gt;(ApplicationUserManager.Create);
+
+            var configuration = new HttpConfiguration();
+            WebApiRouteConfig.Register(configuration);
+
+            app.UseOAuthAuthorizationServer(new OAuthAuthorizationServerOptions
+            {
+                AllowInsecureHttp = true,
+                TokenEndpointPath = new PathString(&quot;/token&quot;),
+                AccessTokenExpireTimeSpan = TimeSpan.FromMinutes(30),
+                Provider = new CustomAuthorizationServerProvider()
+            });
+            app.UseOAuthBearerAuthentication(new OAuthBearerAuthenticationOptions());
+
+            app.UseWebApi(configuration);
+        }
+    }</code></pre>
+<p>Iadded additional code to Configuration method, essentially using more middleware forthe OWIN pipeline. These middleware as stated before, doesn'treallyknow about each other, they are just registered in the pipeline, doing work on incoming requests, then delegating the process to the next in the pipeline andfinally they individually handle the response back to the client.</p>
+<p><code>UseOAuthAuthorizationServer</code>just creates an authorization server andknows nothing about how you implement yourapplication, it doesn't care about your endpoints, it doesn't care about your routes, it doesn't care about content. All it cares is to create,manage, invalidate tokens, as well as authenticating requests.<br />
+<code>OAuthBearerAuthentication</code> doesn't care about the authorization server or the Web API, it cares only about tokens in your request header.<br />
+Yet, all these work wonderfully together. That's the magic with OWIN components. They plug-in to the OWIN pipeline, they do their thing andthen they pass control to the next one in the pipeline.</p>
+<p>How about these weird<code>CreatePerOwinContext&lt;T&gt;</code> you might ask, what is their purpose? This is an extension on <code>IAppBuilder</code> which registers a callback to instantiate a type of T on OWIN context, which is availableonce per request. In the example above, I register the database context (<code>ApplicationDbContext</code> which derives from <code>IdentiyDbContext</code>) so I can have access to the database instance if I wanted to, as well as to the<code>ApplicationUserManager</code>, which is essentially an implementation of <code>UserManager&lt;T&gt;</code>, an entity that provides enough abstractions for a developer to manage the <code>AspNet.Users</code> table, of ASP.NET Identity.</p>
+<p>Note thatwe can customize the authorization server to our hearts content, by providing details on the token endpoint, use of HTTPS, expiration of the issued token, custom implementation ofan authorization provider and much more.For more info relate to MSDN <a href="https://msdn.microsoft.com/en-us/library/microsoft.owin.security.oauth.ioauthauthorizationserverprovider(v=vs.111).aspx">documentation</a>.<br />
+I have added a custom implementation of an authorization server provider, which is fairly simple, it just validates a token based on the username and password provided by an HTTP POST request at /token endpoint.</p>
+<h4>CustomAuthorizationServerProvider</h4>
+<pre class="prettyprint"><code>public class CustomAuthorizationServerProvider : OAuthAuthorizationServerProvider
+    {
+        public override Task ValidateClientAuthentication(OAuthValidateClientAuthenticationContext context)
+        {
+            context.Validated();
+            return Task.FromResult(0);
+        }
+
+        public override Task GrantResourceOwnerCredentials(OAuthGrantResourceOwnerCredentialsContext context)
+        {
+            context.OwinContext.Response.Headers.Add(new KeyValuePair&lt;string, string[]&gt;(&quot;Access-Control-Allow-Origin&quot;, new[] { &quot;*&quot; }));
+
+            var userManager = context.OwinContext.GetUserManager&lt;ApplicationUserManager&gt;();
+            var user = userManager.Find(context.UserName, context.Password);
+            if (user == null)
+            {
+                context.SetError(&quot;invalid_grant&quot;, &quot;Username and password do not match.&quot;);
+                return Task.FromResult(0);
+            }
+
+            var identity = new ClaimsIdentity(context.Options.AuthenticationType);
+            identity.AddClaim(new Claim(ClaimTypes.Name, user.UserName));
+            identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id));
+
+            context.Validated(identity);
+            return Task.FromResult(0);
+
+        }
+    }</code></pre>
+<p>Please note this code is for demonstration purposes only and should not be used in production. If you really want to implement OAuth in production you need to fully comply with the protocol and implement your logic on authorization server. In coming posts I am going to cover that a little bit more.<br />
+I just override two methods of<code>OAuthAuthorizationServerProvider</code> base class. The<code>ValidateClientAuthentication</code> method validatesthat the origin of the request is a valid "client_id". We don't really care to implement theOAuth specification here, so essentially, every incoming request is validated.<br />
+<code>FromGrantResourceOwnerCredentials</code>method metadata:</p>
+<blockquote><p>Called when a request to the Token endpoint arrives with a "grant_type" of "password".<br />
+This occurs when the user has provided name and password credentials directly<br />
+into the client application's user interface, and the client application is using<br />
+those to acquire an "access_token" and optional "refresh_token". If the web application<br />
+supports the resource owner credentials grant type it must validate the context.Username<br />
+and context.Password as appropriate. To issue an access token the context.Validated<br />
+must be called with a new ticket containing the claims about the resource owner<br />
+which should be associated with the access token. The application should take<br />
+appropriate measures to ensure that the endpoint isn’t abused by malicious callers.<br />
+The default behavior is to reject this grant type. See also http://tools.ietf.org/html/rfc6749#section-4.3.2</p></blockquote>
+<p>Asthe method states, if we use a grant_type of password, then this method is called. In the code above, Iget the Username and Password from the context and validate them against the database, on <code>AspNet.Users</code>. Ifa match is found, I create a new<code>ClaimsIdentity</code> instance, adding claims about the username and the userId. These will be later available through the <code>IIdentity.Identity.GetUserId</code> or<code>IIdentity.Identity.GetUserName</code> extension methods.<br />
+Claims are statements about an entity, in previous example this entity is the user itself. ClaimsIdentity is an implementation of IIdentity, which holds an arbitary number of Claims, which is exactly what I did before, adding the userId and the name in ClaimsIdentity collection.<br />
+By calling the<code>OAuthGrantResourceOwnerCredentialsContext.Validated()</code> method, the user entity is authenticated and this information is available in the application context. Now subsequent requests will be authenticated.<br />
+If user is notfound, I return an <code>"invalid_grant"</code> error back to the client.<br />
+Please also note that <code>OAuthAuthorizationServerProvider</code>methods are all asynchronous, so each returns a <code>Task</code>.</p>
+<h3>Test drive</h3>
+<p>Let's run the application now, first try the /api/people endpoints.</p>
+<p>Listing 1-3. GET /api/people<br />
+<img class="alignnone size-large wp-image-173" src="{{ site.baseurl }}/assets/2016/09/screenshot_3.png?w=700" alt="screenshot_3" width="700" height="436" /></p>
+<p>Listing 1-4. GET /api/people/2<br />
+<img class="alignnone size-large wp-image-174" src="{{ site.baseurl }}/assets/2016/09/screenshot_4.png?w=700" alt="screenshot_4" width="700" height="320" /></p>
+<p>Nice, data are fetched from thedatabase for the PeopleController.<br />
+Let's see what's up with the UserController,the AuthorizeAttribute takes place there, so we expect to see a 401 Unauthorized response, if we do not provide any token information on HTTP headers.</p>
+<p>Listing 1-5. GET /api/user (401)<br />
+<img class="alignnone size-large wp-image-210" src="{{ site.baseurl }}/assets/2016/09/screenshot_8.png?w=700" alt="screenshot_8" width="700" height="322" /></p>
+<p>We are completely locked out of the /api/user endpoint. The only way to have access is to get a Bearer token and provide it in the subsequent requests in the HTTP Headers. Tokens can be acquiredfrom the /token endpoint,whichis aPOST action. By providing a payload ofx-www-form-urlencoded, passing the grant_type, username and password for the account (<code>grant_type=password&amp;username=name&amp;password=pass</code>), a user essentially gets a Bearer token to use.</p>
+<p>Listing 1-6. POST /token<br />
+<img class="alignnone size-large wp-image-176" src="{{ site.baseurl }}/assets/2016/09/screenshot_6.png?w=700" alt="screenshot_6" width="700" height="423" /></p>
+<p>Now it's time to get back to/api/user and call the endpoint,providing an Authorization header, with theBearer token I justgot previously. If the token is correct, then access will be granted forthis resource. Remember, a token is invalid after 30 minutes, so you need to go through the same process again to issue another one, unless you set a RefreshTokenProvider.</p>
+<p>Listing 1-7. GET /api/user (200)<br />
+<img class="alignnone size-large wp-image-201" src="{{ site.baseurl }}/assets/2016/09/screenshot_12.png?w=700" alt="screenshot_1" width="700" height="416" /></p>
+<h2>Summary</h2>
+<p>In this post webriefly touched the surface of OWIN Katana implementation. Use cases where presented aboutASP.NET Web API, and self-hosting in OWIN. Also, there was a brief discussion on securing endpoints with a simple token authorization server implementation.<br />
+In next posts we will go throughunit testing the OWIN pipeline, individual controllers, integration testing and documentation. We will explore different, more concrete security configurations, as well as deployment on Azure.</p>
+<p>Codecan be found <a href="https://github.com/gdyrrahitis/aspnet-webapi-owin-selfhost">here</a>.</p>
+<p>Next post: <a href="https://georgedyrra.wordpress.com/2016/11/03/unit-testing-and-code-coverage-for-asp-net-web-api-12/">Fixing the design of this application and writing unit tests</a></p>

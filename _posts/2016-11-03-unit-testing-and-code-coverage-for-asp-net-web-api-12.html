@@ -1,0 +1,228 @@
+---
+layout: post
+title: Unit testing and code coverage for ASP.NET Web API (1/2)
+date: 2016-11-03 20:50:36.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET"
+- C#
+tags:
+- "ASP.NET Web API"
+- Moq
+- NUnit
+- Unit testing
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _publicize_job_id: '28536650098'
+  _wpas_skip_17994663: '1'
+  _wpas_skip_17995347: '1'
+  _wpas_skip_18002326: '1'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2016/11/03/unit-testing-and-code-coverage-for-asp-net-web-api-12/"
+---
+<p>This is the second post in the series on Web API. Topic is TDD and code coverage, so I am going to demonstrate how to unit test your core code, as well as the API code and in the end, how to measure the code coverage you achieved on testing your code base. First, I am going through the changes needed to take place in the application architecture and then I will go totests, so this article is divided into two parts.<br />
+<!--more--></p>
+<p>Previously I was talking about <a href="https://georgedyrra.wordpress.com/2016/09/28/using-owin-to-self-host-web-api-and-secure-endpoints/">setting up your self-hosted ASP.NET Web API application with OWIN</a>. Now let's see to test up everything andget some reports on our code coverage.</p>
+<p>TLDR:Code for the application can be found <a href="https://github.com/gdyrrahitis/aspnet-webapi-owin-selfhost/tree/unit-tests-branch">here</a>.</p>
+<p>I know. This is not the right approach.If you are about to go TDD you should <em>test first</em>and incrementally write your business logic. This is a hard discipline to follow and occasionally you will find yourself drifting away from it. Resist.This was only for demonstration, the API code was somewhat created before hand, in the previous post. All code now for this post is written purely TDD, with tests first. So remember this rule of thumb. Do not write your business code first, do not even write a line of code without an equivalent unit test.<br />
+Of course this is not dogmatic, you can have code untested, like auto-generated code, third party libraries, properties, fields or plain old C# objects, these things do not need to be tested. But you need to be sure that your code works and the only way to do that is through TDD.</p>
+<h3>What is TDD and how is it going to help you</h3>
+<p>Test Driven Development is a professional discipline. You make sure you have your code tested by writing unit tests.</p>
+<p>These tests give you enough certainty to know that your code is error and bug free*. Maybe it is an overstatement to say that it is bug free, at least we can say with certainty that there is a significantdefect reduction when implementing TDD.</p>
+<p>These tests give you the courage you need to refactor code. They are there to tell you if the code is doing what you expect to do or not. And you can tweak and fiddle around with that code, knowing that you can change it, because if the change doesn't break anything, it won't certainly break the test. If it does indeed break something, you revert back to the state before the change. Because of this, the fear to change code is eliminated! If yourefactor the code it won't simply rot. If you don't it rots, and you don't want to deal with this kind of code.</p>
+<p>These tests are there, after a long time being away from the project, to let you know what is going on, they are the perfect kind of low-level documentation of your system. You return back after a long time to refactor or to implement a specific feature and they are there to assist you, to refresh your memory on the project, to make your life easier to implement your features. It's all green or red.</p>
+<p>These tests are there to assist you in the application design. They force you tothink about good design, you make decoupled code, they force you todesign small bits of functionality.</p>
+<p>*Bugs of course can appear in tested code. But it is highly likely that most critical have been eliminated, <em>at least,</em>at the low level. You need a more sophisticated suite of teststo besure that the vast majority of the system has been thoroughly tested, see the <a href="https://codingjourneyman.com/2014/09/24/the-clean-coder-testing-strategies/">test automation pyramid</a>.</p>
+<h3>Code is not testable. What should change and why</h3>
+<p>If you jump back to the previous post you will find some cumbersome code, poorly written, unmaintainable and impossible to test. And test as you saw before, is notrunning a debugger and manuallyrun the application to discover the error. This is going to slow you down.</p>
+<p>See the problems in previous codebase? First of all, everything is packed into a single project. What does this project do anyway? Is it an API project? Is it representing the domain? What exactly does this project <strong><em>represent</em></strong>?<br />
+This needs to be sorted out, by layering the application, with each layer being responsible of its own domain.</p>
+<p>Have you discovered anything else?<br />
+Previous code violates SOLID principles and without these principles, don't expect to have a quality product in your hands.<br />
+Where is the violation though? I can find one very quickly, it is located at the PeopleController.cs:</p>
+<pre class="prettyprint"><code>public class PeopleController : ApiController
+    {
+        private readonly ApplicationDbContext _context;
+
+        public PeopleController()
+        {
+            _context = new ApplicationDbContext();
+        }
+        
+        // Lines omitted for brevity
+    }</code></pre>
+<p>See thehighlighted code? Now stop for a moment and think how are you going to test this. How are you going to mock the ApplicationDbContext API? There is no way you can do that. Code is tightly coupled, PeopleController <strong><em>depends</em></strong> on ApplicationDbContext object. If you want to screw up the PeopleController, just do some tweaks in you ApplicationDbContext. BOOM.<br />
+Wouldn't it be better if you could pass as the ApplicationDbContext as a parameter? Stillthe dependency flow would be from PeopleController to ApplicationDbContext.</p>
+<p><img class="alignnone wp-image-228" src="{{ site.baseurl }}/assets/2016/11/drawing.jpeg?w=700" alt="drawing" width="495" height="266" /></p>
+<p>What if you introduced an Interface? This would make the dependency flow to point backwards! PeopleController now depends on an interface not an implementation, you have won over coupling! (The ApplicationDbContext is a low level policy and you don't want to mess high level abstractions withlow level like this one. That's why it is pushed to the bottom of the abstraction layer, having a service, the <code>PeopleService</code>, which represents a higher abstraction module, work with the controller).</p>
+<p><img class="alignnone wp-image-229" src="{{ site.baseurl }}/assets/2016/11/drawing-1.jpeg?w=700" alt="drawing-1" width="447" height="240" /></p>
+<p>There are a lot of DI containers out there, my personal preference is <a href="https://autofac.org/">Autofac</a>, and this will be used throughout this demo.<br />
+Autofac will make sure to feed all your entities with their required dependencies, you need only to configure it to do that.</p>
+<h3>Tooling</h3>
+<p>The following tools are very useful in order to achieve the goal of this demo. Tools are about DI (to break coupling and make code testable), unit testing (runners, framework), mocking, code coverage and reports.</p>
+<p>As a DI container, I use<a href="http://docs.autofac.org/en/latest/index.html">Autofac</a>. I find it relatively easy, yet powerful tool to solve the DI problem in your application. The documentation is quite good and there is a huge community behind it.</p>
+<p>My testingframework of preference is <a href="https://github.com/nunit/docs/wiki">NUnit3</a>, and my mocking framework is <a href="https://github.com/Moq/moq4/wiki/Quickstart">Moq</a>.</p>
+<p>For code coverage I use the open source <a href="https://github.com/OpenCover/opencover">OpenCover </a>tool and <a href="https://github.com/danielpalme/ReportGenerator">ReportGenerator </a>to create reports from XML reports. Theseare twovery easy, interesting and free tools to use. You just create a .bat file, giving all the required commands to locate runners, tests andit runs the code coverage report for you. You see the reports on the browser, in a nicely formatted HTML page. More on this topic later.</p>
+<h3>Fixing architecture</h3>
+<p>*Note that the architecture demonstratedis not perfect nor it is the recommended way, but it provides a level of abstraction with the differentlayers it consists, which is quite good for this occasion.</p>
+<p>First thing first, I changed the application structure. The architecture consists of a database, several other .NET libraries and a web application.<br />
+Code for this architecture was made with TDD approach, only the API was there before.</p>
+<p>The database is an SQL Server database, created by Entity Framework Code First (in previous post).</p>
+<p>Entities, will be grouped into the Domainlayer, along with a repository which will hold all the basic and generic functionality of accessing the data.</p>
+<p>Next is the service layer, which contains all the underlying services the API will consume in order to orchestrate work to underlying stores. A store could be a database, an XML file virtually whatever. We don't care, <em>this is a detail</em>. Our application should be free from the underlying store, we should be able to change from SQL Server to MongoDb in seconds, andbehave as expected.<br />
+The services consume repositories, from the Domain layer.</p>
+<p>The web application is just the Web APIserver and nothing else. It contains only the controllers and startup classes for OWIN.</p>
+<p>Let's visualize the application:</p>
+<p>This is how it looks on Visual Studio 2015 Solution Explorer</p>
+<p><img class="alignnone size-full wp-image-232" src="{{ site.baseurl }}/assets/2016/11/screenshot_1.png" alt="screenshot_1" width="341" height="222" /></p>
+<p>In Api folder is the Web API application. In Core folder are the .NET libraries needed for accessing the data store as well as defining the business rules. Lastly, <code>Test.Suites</code> folder contains all unit tests for the entire application.</p>
+<p>High level structure:</p>
+<p><img class="size-full wp-image-235 alignnone" src="{{ site.baseurl }}/assets/2016/11/untitled-diagram.png" alt="untitled-diagram" width="398" height="403" /></p>
+<p>The application layers are nicely distributed, each responsible for its own business. The data access layer (<code>People.Domain</code>) is the layer which contains all the logic behind the data store, therefore all the business entities.</p>
+<p>The service layer,contains all the business rules of your application and has access to business entities. This could be abstracted more, by having business related entities in this layer. Those entities then can be mapped to the back-end entitieswhichrepresent the database tables.</p>
+<p>The API consumes these services, performs CRUD operations through them.</p>
+<p>The OWIN layer is there to receive traffic from the consumer clients, which can be virtually anything that has access to the internet.</p>
+<p>Again, this is not a perfect architecture, I am not daydreaming of being a craftsman,but you get an ideaabout the abstraction levels that the application has been divided into.</p>
+<h4>Autofac configuration</h4>
+<p>I have added an AutofacConfig.cs file in App_Start folder. There, I amregistering services into my DI container, in order to use themthroughout the application.</p>
+<pre class="prettyprint"><code>public static void Register(HttpConfiguration configuration, out IContainer container)
+        {
+            var builder = new ContainerBuilder();
+            builder.RegisterApiControllers(Assembly.GetExecutingAssembly());
+
+            builder.RegisterType&lt;ApplicationDbContext&gt;().As&lt;BaseDbContext&gt;();
+            builder.RegisterType&lt;ApplicationDbContext&gt;().AsSelf();
+            builder.RegisterType&lt;ApplicationUserManager&gt;().AsSelf();
+            builder.Register(c =&gt; new UserStore&lt;IdentityUser&gt;(c.Resolve&lt;ApplicationDbContext&gt;()))
+                .AsImplementedInterfaces();
+
+            builder.RegisterType&lt;Repository&lt;Person, int&gt;&gt;().As&lt;IRepository&lt;Person, int&gt;&gt;();
+            builder.RegisterType&lt;PersonService&gt;().As&lt;IPersonService&gt;().InstancePerRequest();
+            builder.RegisterType&lt;UserController&gt;().PropertiesAutowired();
+            builder.RegisterType&lt;CustomAuthorizationServerProvider&gt;().PropertiesAutowired();
+
+            container = builder.Build();
+            configuration.DependencyResolver = new AutofacWebApiDependencyResolver(container);
+        }</code></pre>
+<p>You need the following packages to make it work:</p>
+<ul>
+<li>Autofac</li>
+<li>Autofac.Owin</li>
+<li>Autofac.WebApi2</li>
+<li>Autofac.WebApi2.Owin</li>
+</ul>
+<p>This is apretty standard DIconfiguration file, you register all dependencies and assign the AutofacWebApiDependencyResolver to Web API's <code>DependencyResolver</code>. The DependencyResolver, of type <code>IDependencyResolver</code> is the interface which makes possible hooking different DI frameworks into ASP.NET Web API. Autofac implements this into AutofacWebApiDependencyResolver class for us.</p>
+<p>I register the underlying store (ApplicationDbContext) twice, as different object, the first is of type BaseDbContext, while the second is of type ApplicationDbContext, thanks to <code>AsSelf()</code> method. I do this in order to be resolved differently from its consumers. I alsoregister the UserStore and other services, like the Repository and PersonService objects.<br />
+ForUserController and CustomAuthorizationServerProvider I use property injection to inject theApplicationUserManager instance as required, so that's the reason of using PropertiesAutowired,Autofac will make sure to resolve the public properties based on the types it knows.</p>
+<p>Lastly, I return the container back to the calling method in order to register it toOWIN pipeline.</p>
+<pre class="prettyprint"><code>public class Startup
+    {
+        public static void Configuration(IAppBuilder app)
+        {
+            IContainer container;
+            var configuration = new HttpConfiguration();
+            AutofacConfig.Register(configuration, out container);
+            WebApiRouteConfig.Register(configuration);
+
+            app.UseAutofacMiddleware(container);
+            app.UseAutofacWebApi(configuration);
+
+            // Lines omitted for brevity
+        }
+    }</code></pre>
+<p>In order to have Autofac DI container working with OWIN I need to use the <code>UseAutofacMiddleware</code> extension and <code>UseAutofacWebApi</code> to extend the Autofac lifetime scope added from the OWIN pipeline through to the Web API dependency scope.</p>
+<h4>Changes in controllers</h4>
+<p>Now controllers will have their dependencies injected. <code>PersonController</code> will have <code>IPersonService</code> injected through constructor, while <code>UserController</code> will have <code>ApplicationUserManager</code> injected through property injection.</p>
+<p><strong>PersonController</strong></p>
+<pre class="prettyprint"><code>public class PeopleController : ApiController
+    {
+        private readonly IPersonService _service;
+
+        public PeopleController(IPersonService service)
+        {
+            _service = service;
+        }
+
+        // Lines omitted for brevity
+    }</code></pre>
+<p><strong>UserController</strong></p>
+<pre class="prettyprint"><code>public class UserController : ApiController
+    {
+        public ApplicationUserManager UserManager { get; set; }
+        // Lines omitted for brevity
+    }</code></pre>
+<p>These services are registered into Autofac container, it will be responsible to inject them into these controllers, based on previous configuration.<br />
+They also give us the advantage ofmocking, as these dependencies can be easily mocked with Moq framework and injected into the respective instances.</p>
+<h4>Changes in CustomAuthorizationServerProvider</h4>
+<p>The ApplicationUserManager property is injected the same way like <code>UserController</code>'s <code>ApplicationUserManager</code> property is injected into the class.</p>
+<pre class="prettyprint"><code>public class CustomAuthorizationServerProvider : OAuthAuthorizationServerProvider
+    {
+        public ApplicationUserManager UserManager { get; set; }
+
+        public override Task GrantResourceOwnerCredentials(OAuthGrantResourceOwnerCredentialsContext context)
+        {
+            var user = UserManager.Find(context.UserName, context.Password);
+            // Lines omitted for brevity
+        }
+        
+        // Lines omitted for brevity
+    }</code></pre>
+<h4>PersonService</h4>
+<p>This is aproxy layer, between the API and the repository infrastructure. Here, we can handle business logic for the application, as controllers might not be the ideal place for that. The controller should be the place where the data access logic and business logic are glued together, keeping it as thin as possible. This is the mision ofthis service layer, which talks with the underlying repository.<br />
+The PersonService is injected into the PeopleController, as a IPersonService type. This makes the PeopleController extremely easy to test, as the IPersonService can be easily mocked.</p>
+<pre class="prettyprint"><code>public interface IPersonService
+    {
+        IEnumerable&lt;Person&gt; GetPeople();
+
+        Person GetPerson(int id);
+
+        void Update(Person entity);
+
+        void Delete(Person entity);
+     
+        void Create(Person entity);
+    }</code></pre>
+<p>And the actual implementation</p>
+<pre class="prettyprint"><code>public class PersonService : IPersonService
+    {
+        private readonly IRepository&lt;Person, int&gt; _repository;
+
+        public PersonService(IRepository&lt;Person, int&gt; repository)
+        {
+            _repository = repository;
+        }
+        // Lines omitted for brevity
+    }</code></pre>
+<p>PersonService here has a simple implementation, it just exposes <code>Repository</code>'s CRUD functionality, essentially calling using the IRepository's API,but it could be more complex, containing various rules of business logic.</p>
+<h4>Repository</h4>
+<p>For the data access layer, I have created a generic repository. The reason Ichoose this specific pattern is because it can make my data access code clean and testable. I can have repetitive data acess code encapsulated into specific actions.</p>
+<pre class="prettyprint"><code>public class Repository&lt;T, TKey&gt;: IRepository&lt;T, TKey&gt; where T: class
+    {
+        private readonly BaseDbContext _context;
+
+        public Repository(BaseDbContext context)
+        {
+            _context = context;
+        }
+        // Lines omitted for brevity
+    }</code></pre>
+<p>Repository is doing only data access, it uses the BaseContext methods to interact with the underlyingstore. Code above is pretty standard EF code.<br />
+The <code>BaseContext</code> dependency is an abstract class which derivesfrom IdentityDbContext. In order to make code more testable, like to mock the Set or Entry methods ofDbContext I needed to override them. Essentially, I hid the original methods (Entry&lt;T&gt;, Set&lt;T&gt;, Set) marking them as obsolete and added two methods for getting the DbSet&lt;T&gt; and using the base class Entry&lt;T&gt; method.</p>
+<p><code>ApplicationDbContext</code> is just an implementation of the BaseContext abstact class, which will be used for data access.</p>
+<h3>Almost finished</h3>
+<p>Have you noticed what happened? In order to make my application testable, I had to alter my architecture. I could have kept the previous, cumbersome one, but I wouldn't go far, as I am not sure if mycode is really working and how the code will behave in future changes. Isn't this mad? To not know if your code works? Isn't it frustrating to ship your code and not be confident about success?<br />
+Testing<em>forced</em> me to think about cleanerdesign. Testing <em>forced</em> me to make small, flexible, decoupled components. Testing <em>made</em> it possible to clean out the crap.<br />
+Again,tests should be made first. That said, first you create all the necessary projects, with it's par unit tests projects and from that point you write unit tests to meet your production needs.</p>
+<h3>Summary</h3>
+<p>In this post I've been through on what TDD is and how it is going to benefit you as a developer. I've gone through a lot of changes in application structure and design as well. These changes were necessary in order to be able to test the application in small logical parts.</p>
+<p>After that, tooling necessary for testing was presented, as well as mocking and running the unittests.</p>
+<p>In the <a href="https://georgedyrra.wordpress.com/2016/11/03/unit-testing-and-code-coverage-for-asp-net-web-api-22/">next post to come</a>, I am going to explore a bit more the actual code and show how the unit tests are authored for the Web API application, essentially testing routes, controllers, action selection. Also, I'll do somedata driven tests with NUnit.</p>
+<p>Finally I will showhow toinstall and configure OpenCover and ReportGenerator tools, make them work together with tests and code, in order to provide code coverage reports.</p>

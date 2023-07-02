@@ -1,0 +1,142 @@
+---
+layout: post
+title: Migrating from typings to npm @types
+date: 2017-06-04 18:16:46.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- JavaScript
+tags:
+- Typescript
+- Typings
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  draftfeedback_requests: a:1:{s:13:"5933ef97e7ca0";a:3:{s:3:"key";s:13:"5933ef97e7ca0";s:4:"time";s:10:"1496575895";s:7:"user_id";s:8:"75937724";}}
+  _publicize_job_id: '5771382744'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2017/06/04/migrating-from-typings-to-npm-types/"
+---
+<p>Typescript definitions. What a confusing topic. Prior to Typescript 2.0 we were using tools like<code>typings</code>to manage and install them. After 2.0 we moved to<code>npm</code><code>@types</code>, but what does that really mean? And how can we migrate an existing project that uses <code>typings</code>? What about custom type definitions?</p>
+<p>In this post I will show you how to migrate to newest <code>@types</code>, answering all these questions.<br />
+<!--more--></p>
+<p>Let's work with a project that has typings from the typings repository and also custom ones. We need to preserve the project's structure in code, the only thing we need is to get rid of <code>typings.json</code> and its definition files that are installed with it.</p>
+<p>Before we do that though, let's dig into some useful information on typings.</p>
+<h3>Typescript Definition Manager</h3>
+<p>Having a basic understanding of the Javascript programming language, one can spot its untyped nature. You can write code that passes around data and objects as you want, which don't necessary means that this code, namely functions, objects or variables actually exist. You can perfectly write some code that calls an non-existent method and Javascript will not complaint, because there is no compiler in the first place the language is compiled by a JIT compiler when running on the browser and there you will get your runtime error<br />
+These issues, you will agree, are hard to discover when you are developing and can lead to unstable code.</p>
+<p>Enter Typescript. Typescript is mainly about adding types to Javascript, transforming it from a loose-typed language to a hard-typed, requiring from the developer to accurately descript the format of the objects and data in the code. But Typescript does not run on the browser, Javascript does. That is why Typescript comes with its own compiler, which essentially compiles .ts files to pure Javascript. During the compilation process errors can be detected (of course compile time errors, not runtime/logic), essentially halting you from building that code. If you are owner of this code then its in your hands to make the syntax compatible with the compiler's laws.</p>
+<p>But what about third party libraries, like jQuery or Angular? These, you don't have any authority over and Typescript cannot understand the libraries specific objects, like <code>$</code> or <code>angular</code>. Compiler won't be able to understand those objects and will throw an error if you reference them.<br />
+So, in order to use such libraries with Typescript, you need to get files that describe their public API. These are type definition files, with a file extension of <code>.d.ts</code>.</p>
+<p>The <a href="https://github.com/typings/typings">Typescript Definition Manager</a> is a solution to that problem, as it provides a single way to manage and install Typescript definitions, by using a typings.json file to resolve the library specific types from various repositories, like the typings registry, Github, NPM or even custom online or local files.<br />
+This project is heavily supported by the community, which has effectively gone and documented the nature of nearly 90% of the top Javascript projects in there.</p>
+<p>Okay, and what is that<code>@types</code> thing?</p>
+<h3>npm @types</h3>
+<p>@types comes to solve the problem of using another third party tool for this job. Many people have plead for making Typescript support resolving these definition types internally.<br />
+This is a feature that was introduced in Typescript 2.0. All the type definition files that were part of the <code>typings</code> project are moved to NPM now, so one can download the directly from there with a simple command</p>
+<p><code>npm install @types/angular --save</code></p>
+<p>As you can see, installation is fairly simple. Of course, the compiler was modified accordingly to resolve these types automatically, supporting global and module type definitions.<br />
+Global definitions are by default any definitions that support global consumption and they are included automatically.<br />
+For module definitions, no special configuration is required after the installation, you just use it like a module</p>
+<p><code>import * as angular from "angular";</code></p>
+<p>There are ~3274 @types packages available at npm at the moment. Take a look <a href="https://www.npmjs.com/~types">here</a>.</p>
+<p>Now that we got some background on them, let's move to the actual project.</p>
+<h3>Migration</h3>
+<p>First of all, make sure you have installed Typescript version &gt;= 2.0. I have 2.3.3 version installed.<br />
+<code>npm install typescript@2.3.3 -g</code><br />
+<code>npm install typescript@2.3.3 --save-dev</code></p>
+<p>I installed Typescript globally on my machine and also locally on my project, so my code can be compiled on the CI.</p>
+<p>Next, remove type definitions from <code>typings.json</code>.<br />
+My typings file contains the following global dependencies</p>
+<pre class="prettyprint"><code>{
+  &quot;globalDependencies&quot;: {
+    &quot;angular&quot;: &quot;registry:dt/angular#1.5.0+20160909133806&quot;,
+    &quot;angular-mocks&quot;: &quot;registry:dt/angular-mocks#1.5.0+20160608104721&quot;,
+    &quot;angular-route&quot;: &quot;registry:dt/angular-route#1.3.0+20160317120654&quot;,
+    &quot;angularlocalstorage&quot;: &quot;registry:dt/angularlocalstorage#0.1.7+20160317120654&quot;,
+    &quot;clientConfig&quot;: &quot;file:typings/custom/client.config/index.d.ts&quot;,
+    &quot;express&quot;: &quot;registry:dt/express#4.0.0+20160708185218&quot;,
+    &quot;express-serve-static-core&quot;: &quot;registry:dt/express-serve-static-core#4.0.0+20160914120416&quot;,
+    &quot;gulp&quot;: &quot;registry:dt/gulp#3.8.0+20160907112908&quot;,
+    &quot;homeControllerScope&quot;: &quot;file:typings/custom/home.controller.scope/index.d.ts&quot;,
+    &quot;jasmine&quot;: &quot;registry:dt/jasmine#2.2.0+20160621224255&quot;,
+    &quot;jquery&quot;: &quot;registry:dt/jquery#1.10.0+20160908203239&quot;,
+    &quot;localstorage&quot;: &quot;file:typings/custom/localstorage/index.d.ts&quot;,
+    &quot;menuControllerScope&quot;: &quot;file:typings/custom/menu.controller.scope/index.d.ts&quot;,
+    &quot;mime&quot;: &quot;registry:dt/mime#0.0.0+20160316155526&quot;,
+    &quot;node&quot;: &quot;registry:dt/node#6.0.0+20160921192128&quot;,
+    &quot;orchestrator&quot;: &quot;registry:dt/orchestrator#0.0.0+20160316155526&quot;,
+    &quot;q&quot;: &quot;registry:dt/q#0.0.0+20160613154756&quot;,
+    &quot;roomControllerScope&quot;: &quot;file:typings/custom/room.controller.scope/index.d.ts&quot;,
+    &quot;roomRoute&quot;: &quot;file:typings/custom/room.route/index.d.ts&quot;,
+    &quot;serve-static&quot;: &quot;registry:dt/serve-static#0.0.0+20160606155157&quot;,
+    &quot;serverConfig&quot;: &quot;file:typings/custom/server.config/index.d.ts&quot;,
+    &quot;socket&quot;: &quot;file:typings/custom/socket/index.d.ts&quot;,
+    &quot;socket.io&quot;: &quot;registry:dt/socket.io#1.4.4+20160909205835&quot;,
+    &quot;socket.io-client&quot;: &quot;registry:dt/socket.io-client#1.4.4+20160317120654&quot;,
+    &quot;tuple&quot;: &quot;file:typings/custom/tuple/index.d.ts&quot;,
+    &quot;types&quot;: &quot;file:typings/custom/types/index.d.ts&quot;,
+    &quot;user&quot;: &quot;file:typings/custom/user/index.d.ts&quot;,
+    &quot;vinyl&quot;: &quot;registry:dt/vinyl#1.2.0+20160924121322&quot;
+  }
+}</code></pre>
+<p>As you can see, it contains definitions directly from the registry and also some custom ones (the <code>file:typings/custom/*</code>). We want to remove all these from the <code>typings/globals/</code> directory.<br />
+Also, note that my custom definitions are under the <code>typings/custom/</code> directory. I want to keep that directory, so I can register the custom type definitions with the <code>tsconfig.json</code>.<br />
+I use VS Code here, but you can do it with your command prompt from the location of the <code>typings.json</code> file. So, on VS Code, open the terminal (<code>Ctrl + `</code>) and start removing definitions using the following <a href="https://github.com/typings/typings/blob/master/docs/commands.md#uninstall">commands</a>:</p>
+<p><code>typings rm &lt;name&gt; -SG</code></p>
+<p>The <code>rm</code> command is just an alias to the <code>uninstall</code> command. The <code>-SG</code> flag is removing from globals directory. So, for example, I want to remove the angular typed definition</p>
+<p><code>typings rm angular -SG</code></p>
+<p>I removed all the rest using the same command.</p>
+<p>After you have removed all the definitions, go ahead and remove the <code>typings.json</code> file. Also, uninstall the <code>typings</code> from the npm modules.</p>
+<p><code>npm uninstall typings --save-dev</code></p>
+<p>My working directory looks like the following now:</p>
+<p><img class="alignnone size-full wp-image-478" src="{{ site.baseurl }}/assets/2017/06/working_directory1.png" alt="" width="315" height="660" /></p>
+<p>Awesome! Next step is to configure <code>tsconfig.json</code> to register these definitions as globals and to install all <code>@types</code> for the rest of the libraries.<br />
+Let's first install all the @types modules and then configure the <code>tsconfig.json</code></p>
+<pre class="prettyprint"><code>npm install @types/angular @types/angular-mocks @types/angular-route @types/angularlocalstorage @types/express @types/express-serve-static-core @types/gulp @types/jasmine @types/jquery @types/mime @types/node @types/orchestrator @types/q @types/serve-static @types/socket.io @types/socket.io-client @types/vinyl --save-dev</code></pre>
+<p>And my <code>tsconfig.json</code> is:</p>
+<pre class="prettyprint"><code>{
+    &quot;compilerOptions&quot;: {
+        &quot;module&quot;: &quot;commonjs&quot;,
+        &quot;moduleResolution&quot;: &quot;node&quot;,
+        &quot;noImplicitAny&quot;: false,
+        &quot;sourceMap&quot;: true,
+        &quot;target&quot;: &quot;es6&quot;,
+        &quot;removeComments&quot;: false,
+        &quot;allowSyntheticDefaultImports&quot;: true,
+        &quot;suppressExcessPropertyErrors&quot;: true,
+        &quot;typeRoots&quot;: [
+            &quot;node_modules/@types&quot;,
+            &quot;typings/custom&quot;
+        ]
+    },
+    &quot;exclude&quot;: [
+        &quot;node_modules&quot;,
+        &quot;typings&quot;
+    ]
+}</code></pre>
+<p>I will not explain all those properties, rather than stand on <code>typerRoots</code> and a bit on <code>exclude</code>.<br />
+As you know, exclude is used to exclude files from compilation process, so I excluded all typescript under <code>node_modules</code> and <code>typings</code> directories. Remember, I have custom types under the typings folder.</p>
+<p>Now the <code>typeRoots</code>. As you know,@types are automatically included in the compilation. If you are casually saving your @types under <code>node_modules/@types</code>, then they will be automatically picked up by the compiler and will be globally available (just like having them as globals in typings). But what happens when you want to have other types, like custom ones available also? And they are in an entirely different folder from <code>node_modules/@types</code>? You need to explicitly tell the compiler to look not only on <code>node_modules/@types</code> but to other directories as well.<br />
+Enter the <code>typeRoots</code> compiler option. This option allows loading typing declarations from folders which have an NPM format, meaning they contain an <code>index.d.ts</code> file. The default for the <code>typeRoots</code> is:</p>
+<pre class="prettyprint"><code>{
+   &quot;typeRoots&quot; : [&quot;node_modules/@types&quot;]
+}</code></pre>
+<p>Now you understand why <code>node_modules/@types</code> is by default picked up.<br />
+Typescript goes to that folder and tries to load every sub-folder that is an npm package. Essentially, the <code>typeRoots</code> property is useful for loading global declarations.<br />
+The thing is that it loads as global every declaration under the folder structure(s) that it is instructed to look. If you wish to be explicit on what you want to be loaded as globals, then you should use the <code>types</code> property.<br />
+Looking on the <code>tsconfig.json</code> you can understand that declarations are loaded from <code>node_modules/@types</code> <strong>and</strong>from <code>typings/custom</code> directories.</p>
+<h4>Almost ready...</h4>
+<p>One more thing I need to do is to fix some of my Typescript definition files, as they use the <code>/// &lt;reference path="..." /&gt;</code> to reference other definitions inside those <code>.d.ts</code> files. These references need to be removed, so, I visited each of the <code>typings/custom/*/index.d.ts</code> files to do so.</p>
+<p>Let's try to compile now...</p>
+<p><img class="alignnone size-full wp-image-482" src="{{ site.baseurl }}/assets/2017/06/compile.png" alt="" width="451" height="116" /></p>
+<p>No problem at all! I successfully migrated my Typescript definitions!</p>
+<h2>Summary</h2>
+<p>In this post I presented some key points on typings definition manager and @types. I quickly and detailed demonstrated a seamless migration from old definitions to new ones, preserving the custom definitions in the same time. I discussed on how the compiler is tied to resolving global or module type definitions.</p>
+<p>Hope you enjoyed that, see you next time!</p>

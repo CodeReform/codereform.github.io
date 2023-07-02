@@ -1,0 +1,114 @@
+---
+layout: post
+title: Testing AngularJS UI-Router routes
+date: 2017-09-02 15:39:32.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- JavaScript
+tags:
+- AngularJS
+- Typescript
+- Unit testing
+- TDD
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _publicize_job_id: '8885488612'
+  _publicize_done_external: a:2:{s:8:"facebook";a:1:{i:17994663;s:37:"https://facebook.com/1808502439163346";}s:7:"twitter";a:1:{i:18002326;s:58:"https://twitter.com/giorgosdyrra/status/904005922133028865";}}
+  _publicize_done_18230083: '1'
+  _wpas_done_17994663: '1'
+  publicize_google_plus_url: https://plus.google.com/113829822246429249393/posts/KKuZVLwPxTV
+  _publicize_done_18230107: '1'
+  _wpas_done_17995347: '1'
+  _publicize_done_18237161: '1'
+  _wpas_done_18002326: '1'
+  publicize_twitter_user: giorgosdyrra
+  _thumbnail_id: '611'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2017/09/02/testing-angularjs-ui-router-routes/"
+---
+<p>Tests are important. In our AngularJS applications we have tons of stuff to test, we have unit tests on components, filters, directives and other AngularJS features, we have tests on templates and we also have tests on routes. Most sophisticated AngularJS applications might contain more than one page to display, so you need to have a routing mechanism to navigate to different components in the application.</p>
+<p>The thing is how you test this? How you test your routed components? How you test the template with the routing directives?</p>
+<p>That is exactly what I am going to talk about in this post. I prefer the AngularUI-Router, because it is really powerful, so this post will contain examples using this framework.</p>
+<p><!--more--></p>
+<h2>AngularUI-Router</h2>
+<p><a href="https://github.com/angular-ui/ui-router">AngularUI-Router</a> is yet another framework for managing routing in single page applications. Its difference from other routing frameworks is that it provides a state machine to manage transitions between different application states. It is a very sophisticated routing framework, which provides much more flexibility and richer API from the traditional <a href="https://docs.angularjs.org/api/ngRoute">ngRoute</a>, which is great, I won't say otherwise, but UI-Router gives more options and it's fitted more for component based applications.</p>
+<p>I am using AngularJS <code>1.6.x</code> and for UI-Router I am using the <code>1.0.0-rc.1</code> version.</p>
+<p>I said earlier that this routing framework is a better fit for component based applications. As you might know, AngularJS &gt;= <code>1.5.x</code> supports components, kinda the same way the newer Angular does. UI-Router comes into play as it supports components by default. You can write your components and make them routed (see below for routed components), plus it provides a resolve mechanism to map directly to bindings.</p>
+<h2>Testing routed components</h2>
+<p>What does make a routed component actually?<br />
+In simple words, a routed component is a standard defined component plus routing definitions. We provide all the routing definitions for a component (or multiple components) in its module, with the freedom to define our own routing logic. We can also provide binding mapping using a route resolve, so we can provide input for the component when the route is resolved.</p>
+<p>What we achieve here, is to have our application broken down in modules and each module to have one or more components, conceptually grouped together.<br />
+We have routing definitions in each module, making them:</p>
+<ul>
+<li>Lightweight. No more one single file with all routing definitions, which is difficult to navigate. Routing definitions are local to each module.</li>
+<li>Portable. We can reuse certain modules in other applications. Routing definitions travel with them.</li>
+</ul>
+<p>Another advantage it offers you, is that you don't have to specify the component element in the route configuration, like ngRoute does, but you can just provide your component name and it registers it for you.</p>
+<h3>Testing routes</h3>
+<p>Let's test some routes, to see if they work as expected. In the following example, I am going to post a snippet from a module, which has routing definitions. Then, I am going to put to the test those routing definitions.</p>
+<p>{% gist 2221c2020a699dfc46fb314563c0d94a %}</p>
+<p>I have defined a module with the name <code>pcard.help</code> and a component with the name <code>pcardHelp</code>, which in a template translates to <code>&lt;pcard-help&gt;</code>. As you can see, I have declared also the routing definitions. I have only one state, with the name <code>"help"</code>, which maps to <code>/help</code> URL and loads the component <code>pcardHelp</code>. If the route doesn't match, it redirects back to <code>/home</code>.</p>
+<p>Now, let's see the spec</p>
+<p>{% gist 50f966f11bb8cfbcc8eeacb5d23a81ad %}</p>
+<p>Let's look at the <code>beforeEach</code> section and then move to the tests. In <code>beforeEach</code>, I first load the <code>HelpModule</code> I defined earlier.<br />
+Then it's time to configure some routing, I first setup the <code>$locationProvider</code> to use HTML5 mode, so I won't have hashes in URLs, then I add a <code>home</code> state, which maps to <code>/home</code> URL, in order to navigate to this when I test a non-existent route. Remember, I used an <code>.otherwise()</code> method earlier which navigates to home if the route doesn't match.<br />
+Lastly, I inject useful services in the test spec, I want the <code>$componentController</code> in order to instantiate a new component controller. I want the <code>$state</code> service, in order to navigate to various states. I want the <code>$rootScope</code> service in order to kick-off a digest cycle, so the states are resolved.</p>
+<p>In test<code>"should be routed component"</code> I am navigating to <code>"help"</code> state, which will set the URL to <code>/help</code>. I need to kick-off the digest cycle else the <code>$state</code> won't be updated.<br />
+Then, I examine the <code>$state.current</code> property, which contains all the information for the current loaded state. So in the test above, in the assert section, I expect the current route to have loaded the <code>pcardHelp</code> component, the state to be <code>"help"</code> and the URL to be <code>/help</code>. To test the current URL, use the <code>.href()</code> method and pass the current state name.</p>
+<p>In next test, the<code>"should redirect to home if route is wrong"</code>, I test for a non-existent route. I expect this to navigate me to <code>/home</code> URL, which it certainly does.</p>
+<h3>Testing $state.go</h3>
+<p>If your code under test uses <code>$state.go()</code> method you can test it based on your test context. If your tests are unit tests, then a simple mock would do. But if you are doing integration tests, then consider to test the routes using the <code>$state</code> service and the current scope.</p>
+<h4>Unit test example</h4>
+<p>In order to unit test your methods, just mock the <code>$state</code> service. In the following example, I am mocking the <code>$stat.go()</code> method and then I verify it was called with those parameters. I picked this imaginary example because it is simple to show, as more complex examples might not fit for demonstration. For more complex tests, take a look at the repository<a href="https://github.com/gdyrrahitis/pcard/tree/features/src/app/client">here</a>.</p>
+<p>{% gist 02b6dfa9da3b64fd6f04c9027812ecbd  %}</p>
+<p>{% gist 17011ba06095b0d37a6797bda3fe722e  %}</p>
+<p>{% gist 699b8cd5d262ed09669d9bc94199ce3c %}</p>
+<h4>Integration test example</h4>
+<p>In integration tests, we don't rely on mocks, rather we rely on the real infrastructure and on real code, at least for the most part.<br />
+If you want to write integration tests, for example to test the above-mentioned component, you need to be able to control the scope in the component. That's why you need to pass a scope there and kick-off digest cycle to navigate to the next state.<br />
+Let's examine the following example:</p>
+<p>{% gist 536a9e9d56a506491a90c0c260de92e5  %}</p>
+<p>Pay attention to the <code>createComponent</code> method. It receives a name, which is the component name, it receives a <code>Locals</code> object, which contains the <code>$scope</code> for the component and other key value pairs you might want to pass and a <code>bindings</code> object, which is an object that represents the current bindings for the component.<br />
+The point of interest here is the Locals. We pass a scope into this component using the Locals. So, now I can call the <code>.$digest()</code> method on that scope, making it possible for me to navigate to the next state. As usual, I test the current state's name and the URL to be <code>"todo"</code> and <code>"/todo/1"</code> which is expected after calling <code>.showTodo()</code> method.</p>
+<h2>Testing ui-sref</h2>
+<p>It's time to test the template, to click the anchor links and navigate to different states, what can go wrong, uh?<br />
+Well, it might seem a straightforward approach and it should be, but it isn't. This directive, <code>ui-sref</code>, involves a little bit of hack in order to test it.<br />
+Let's look first what this directive is and it's accompanied one and then I'll get back to the tests.</p>
+<p>UI-Router has specific directives to navigate to a URL and identify an anchor as an active one.<br />
+In order to navigate to a new state use the <code>ui-sref</code> directive. It has similar behavior to HTML <code>href</code> but instead of a URL, use a state name.</p>
+<p>In order to add a class to the HTML element, when the state is active, use the <code>ui-sref-active</code> directive.</p>
+<p>For rendering active routes, use the <code>&lt;ui-view&gt;</code> element. It is the counterpart of <code>&lt;ng-view&gt;</code> from ngRoute.</p>
+<pre class="prettyprint"><code>&lt;a ui-sref=&quot;home&quot; ui-sref-active=&quot;active&quot;&gt;Home&lt;/a&gt;</code></pre>
+<p>Now, let's look at the following example. I have two anchor links, one navigates to <code>"home"</code> state, the other navigates to <code>"help"</code> state.</p>
+<p>{% gist a5ddf92928a54f40bd9359c52f223dc4 %}</p>
+<p>The tests,</p>
+<p>{% gist b3c83a153c51e02358aeb6baf1ad5195  %}</p>
+<p>Looking at the fist one,<code>"should redirect to home by clicking on menu item"</code></p>
+<p>First, I need to compile the template. I create a new element, based on the component, in this case <code>&lt;pcard-menu&gt;</code> and then I compile it, with scope as the <code>$rootScope</code> object.</p>
+<p>Next, I run a digest cycle to bind the template with the component's controller.</p>
+<p>Next, I fetch the anchor element that I am interested in. I click that anchor, using the <code>triggerHandler()</code> method (it is the counterpart of jQuery <code>.trigger()</code> method in jQLite).</p>
+<p>Notice that I use the <code>$timeout</code> service here and I explicitly flush the timeout. This is on purpose, if I hadn't done that, the test would fail as <code>$state</code> would not be able to navigate in time for the test to let me know. I will explain myself shortly, let's get over with the test.</p>
+<p>Next, I run another digest cycle, in order to make the <code>$state</code> service navigate to the next state.</p>
+<p>Lastly, I am asserting the results, making sure that clicking the anchor element navigates to the correct state, with a correct URL displayed.<br />
+Same happens in the other test, the <code>"should redirect to help by clicking on menu item"</code></p>
+<p>Why did I use that terrible hack with <code>$timeout</code>? The reason lies in the source code of ui-sref directive. You can find the answer at its source code, <a href="https://github.com/angular-ui/ui-router/blob/master/src/directives/stateDirectives.ts">here</a>, at line 69,<code>clickHook</code> function.</p>
+<p>Code below is taken from UI-Router repository</p>
+<p>{% gist 6dd958772ee559fe0b2e55d36d39a60f  %}</p>
+<p>{% gist b90ec9626c08a1a174475e7f528d6485  %}</p>
+<p>As you can see, the <code>uiSref</code> directive is using the function <code>clickHook</code>. This function here uses the <code>$timeout</code> service, and explicitly warns us that this is a hack, by this comment</p>
+<p><code><span class="pl-c">//</span> HACK: This is to allow ng-clicks to be processed before the transition is initiated:</code></p>
+<p>So, they wrap the call of<code>$state.go()</code> method in a timeout, in order to allow clicks to be processed before the transition is initiated.<br />
+That said, you need to flush that timeout in your test in order to make it pass.</p>
+<p>I have to give credit to this SO post for the answer.<a href="https://stackoverflow.com/questions/25502568/angularjs-ui-router-test-ui-sref">https://stackoverflow.com/questions/25502568/angularjs-ui-router-test-ui-sref</a></p>
+<h2>Summary</h2>
+<p>In this post we learned about AngularUI-Router and how to test routes. I demonstrated testing routed components and testing states, by just calling the <code>$digest()</code> method, in order to kick-off the digest cycle, after you change states.<br />
+I also demonstrated how to test templates that use the <code>ui-sref</code> directive, with a help of a hack, as this directive is using <code>$timeout</code> service internally, so we need to flush that timeout before we continue.</p>
+<p>You can reference to this repository, <a href="https://github.com/gdyrrahitis/pcard/tree/features">here</a>, it contains more than 200 tests on the client so it might be a good place to check some other more complex examples and tests. Some code samples demonstrated in this post were taken from that repository.</p>

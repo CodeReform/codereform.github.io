@@ -1,0 +1,143 @@
+---
+layout: post
+title: Unit test code with Jasmine and code coverage with Karma coverage using Istanbul
+date: 2016-11-06 17:59:13.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- JavaScript
+tags:
+- Jasmine
+- TDD
+- Karma
+- Unit testing
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _publicize_job_id: '28631125133'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2016/11/06/unit-test-code-with-jasmine-and-code-coverage-with-karma-coverage-using-istanbul/"
+---
+<p>Karma is an awesome testing environment, it is open source, it supports a plethora of testing frameworks and it is easy to use.</p>
+<p>In this post I am going to create some simple tests, run them on Karma using Jasmine and finally, show some code coverage reports, through Karma coverage.</p>
+<p><!--more--></p>
+<p>TLDR: Code can be found <a href="https://github.com/gdyrrahitis/bpost-karma-codecoverage">here</a>.</p>
+<p>In this sample, I created a new project, running <code>npm init -y</code>, installing the following dependencies:</p>
+<pre class="prettyprint"><code>&quot;devDependencies&quot;: {
+    &quot;istanbul&quot;: &quot;^0.4.5&quot;,
+    &quot;jasmine-core&quot;: &quot;^2.5.2&quot;,
+    &quot;karma&quot;: &quot;^1.3.0&quot;,
+    &quot;karma-coverage&quot;: &quot;^1.1.1&quot;,
+    &quot;karma-jasmine&quot;: &quot;^1.0.2&quot;,
+    &quot;karma-phantomjs-launcher&quot;: &quot;^1.0.2&quot;,
+    &quot;karma-chrome-launcher&quot;: &quot;^2.0.0&quot;
+  }</code></pre>
+<p>Next, I setup the <code>test</code> script in package.json.</p>
+<pre class="prettyprint"><code>&quot;scripts&quot;: {
+    &quot;test&quot;: &quot;karma start karma.conf.js&quot;
+  },</code></pre>
+<p>Awesome, I am ready to setup the karma.conf.js file to configure Karma. This is added on the root directory of the project and itlooks like the following:</p>
+<pre class="prettyprint"><code>module.exports = function (config) {
+    config.set({
+        basePath: '',
+        frameworks: ['jasmine'],
+        files: [
+            'src/app/**/*.js',
+            'src/spec/**/*.specs.js'
+        ],
+        preprocessors: {
+            '**/src/app/*.js': ['coverage']
+        },
+        plugins: [
+            'karma-jasmine',
+            'karma-phantomjs-launcher',
+            'karma-coverage'
+        ],
+        reporters: ['progress', 'coverage'],
+        port: 9878,
+        colors: true,
+        logLevel: config.LOG_DEBUG,
+        autowatch: true,
+        browsers: ['PhantomJS'],
+        singleRun: false,
+        concurrency: Infinity,
+        coverageReporter: {
+            includeAllSources: true,
+            dir: 'coverage/',
+            reporters: [
+                { type: &quot;html&quot;, subdir: &quot;html&quot; },
+                { type: 'text-summary' }
+            ]
+        }
+    });
+};</code></pre>
+<p>I left the <code>basePath</code> empty, indicatingit is the rootcurrent directory.</p>
+<p>On <code>frameworks</code> I use the Jasmine testing framework for my tests. Because it is an array, I can pass more than one framework for Karma to load. All available frameworks can be found <a href="https://www.npmjs.com/browse/keyword/karma-adapter">here</a>.</p>
+<p>The <code>files</code> propertygets all the files that are going to be loaded into the browser. In this case the browser is PhantomJS, as you can see from the <code>browsers</code>configuration property.<br />
+All of my code resides into the src directory, which has the app and spec subdirectories. In first there is a <code>calculator.js</code> file, whereas in thelatter is a <code>calculator.specs.js</code> file.</p>
+<p>On <code>preprocessors</code>, I include only the files that I want a report to be generated, not third party libraries, not specs, just the files that I care to see code coverage reports, in this case the <code>calculator.js</code>. The preprocessors will preprocess the matching files beforeserving them to the browser.</p>
+<p>On <code>plugins</code> property, I register all the required plugins Karma wants to run the configuration. For example, I am using Jasmine as the testing framework, I need to have karma-jasmine plugin loaded into Karma. Same goes for karma-phantomjs-launcher, which loads PhantomJS browser into Karma, in order to be used in <code>browsers</code> configuration, or karma-coverage, which provides code coverage reports using <a href="https://github.com/gotwarlost/istanbul">Istanbul</a>.</p>
+<p>The <code>reporters</code> configuration takes 'progress' and 'coverage'. The progress reporterwill show the number of tests executed, skipped and total in console.<br />
+The coverage reporter will create a coverage report for every browser that the tests are run in.</p>
+<p>Lastly, skipping rest of configuration, there are the coverage reporter options (last configuration property). By this one can configure the output directory to dump the reports, different type of reporters, like html, text, etc.<br />
+In the example above, I output the coverage results in a coverage directory, relative to the root directory of the project. Also, I have configured two different type of reporters to deploy, one html, which will create the reports in an HTML format, under the html subdirectory and one text-summary, which will output a summary of the code coverage on console.</p>
+<p>This is the calculator.js, the sourceto be tested.</p>
+<pre class="prettyprint"><code>function Calculator() {
+    function add(x, y) {
+        return x + y;
+    }
+
+    function subtract(x, y) {
+        return x - y;
+    }
+
+    return {
+        add: add,
+        subtract: subtract
+    }
+}</code></pre>
+<p>And this is the corresponding spec:</p>
+<pre class="prettyprint"><code>describe(&quot;Calculator Spec&quot;, function() {
+    it(&quot;should add two and two and get four as a result&quot;, function() {
+        // Arrange
+        var calculator = new Calculator();
+
+        // Act
+        var result = calculator.add(2, 2);
+
+        // Assert
+        expect(result).toBe(4);
+    });
+});</code></pre>
+<p>Let's run this, by opening a terminal and typing <code>npm test</code></p>
+<p>This is the feedback I get from each reporter:</p>
+<p><img class="alignnone size-large wp-image-354" src="{{ site.baseurl }}/assets/2016/11/coverage_summary_notcomplete.png?w=700" alt="coverage_summary_notcomplete" width="700" height="114" /></p>
+<p>And from theHTML...</p>
+<p><img class="alignnone size-full wp-image-355" src="{{ site.baseurl }}/assets/2016/11/coverage_html_notcomplete.png" alt="coverage_html_notcomplete" width="625" height="342" /></p>
+<p>Seems that I have forgotten to test the subtract method. Istanbul code coverage lets me know about this, by highlighting the not tested code in red.</p>
+<p>Let's fix this by adding a test for this method.</p>
+<pre class="prettyprint"><code>it(&quot;should subtract two and two and get zero as a result&quot;, function (){
+        // Arrange
+        var calculator = new Calculator();
+
+        // Act
+        var result = calculator.subtract(2, 2);
+
+        // Assert
+        expect(result).toBe(0);
+    });</code></pre>
+<p>And run the tests again and see the results from the reports...</p>
+<p><img class="alignnone size-full wp-image-356" src="{{ site.baseurl }}/assets/2016/11/coverage_summary_complete.png" alt="coverage_summary_complete" width="675" height="129" /></p>
+<p>And the HTML one..</p>
+<p><img class="alignnone size-large wp-image-357" src="{{ site.baseurl }}/assets/2016/11/coverage_html_complete2.png?w=700" alt="coverage_html_complete2" width="700" height="76" /></p>
+<p><img class="alignnone size-full wp-image-358" src="{{ site.baseurl }}/assets/2016/11/coverage_html_complete.png" alt="coverage_html_complete" width="585" height="325" /></p>
+<p>Seems like the reports working just fine.</p>
+<h2>Summary</h2>
+<p>Karma is awesome and easy,as it was demonstratedin this post and setting up code coverage for your project is equally easy.<br />
+We saw how to setup Karma to run tests using Jasmine framework and how to setup code coverage with Istanbul to get reports on coverage. All you need to do is to download the karma-coverage package set the preprocessors, reporters and reporter options and runKarma, simple as that.</p>

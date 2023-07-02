@@ -1,0 +1,158 @@
+---
+layout: post
+title: ASP.NET Core 2.0 Authentication with local logins - Responding to backend changes
+date: 2018-03-07 22:53:43.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET Core"
+- C#
+tags:
+- ASP.NET Core 2.0
+- Authentication
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _thumbnail_id: '747'
+  _publicize_job_id: '15493021347'
+  timeline_notification: '1520463224'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/03/07/asp-net-core-2-0-authentication-with-local-logins-responding-to-backend-changes/"
+---
+<p>ASP.NET Core 2.0 makes it very easy and straightforward to setup a cookie authentication mechanism in your application. Framework provides numerous ways to achieve that, with or without <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity?tabs=visual-studio%2Caspnetcore2x">ASP.NET Core Identity</a> membership system.</p>
+<p>This post is part of a series on ASP.NET Core 2.0 Authentication and I am about to talk about cookie events and how to respond to them.<br />
+<!--more--></p>
+<h2>Application</h2>
+<p>In this demo, I am going to talk about cookie events in ASP.NET Core 2.0. The application in question is based on previous post of this series, <a href="https://wp.me/p7uERY-aP">ASP.NET Core 2.0 Authentication with local logins - Implementing claims transformation</a>, so if you haven't followed along, it would be better to check this out first before diving into code that's coming next.</p>
+<p>Code for this demo can be found <a href="https://github.com/gdyrrahitis/bpost-aspnetcore-local-logins/tree/backend-changes">here</a>.</p>
+<p>Very little has changed, the most significant change (aside from this post focus which is cookie events) is the database schema and data, so you might want to update accordingly by running the setup.cmd batch script that is found within the application source code.</p>
+<p>{% gist fe6c1b543e10e8971008efc0ee81419d %}</p>
+<p>You might notice there is a new table, the <code>[dbo].[Log]</code>, which will be used for logging purposes.</p>
+<h2>Handling back-end volatility</h2>
+<p>In the previous post, I talked about enhancing an authenticated Identity with additional claims, utilizing a user profile store and the <code>IClaimsTransformation</code> interface.<br />
+This service responds to changes that happen to these additional claims, as it is executed for each request, as long as the user is authenticated.</p>
+<p>Required claims usually are set during the cookie creation, that is when the user logs in, and most of the times, these are identity values that you define as the most important for your application to function as expected. Without them you might end up with all kinds of trouble, minor or major, doesn't matter as long as it is trouble.<br />
+How your application should react when these identity values have been modified in the back-end? Or even worse, how your application should react when the user in question is deleted from the back-end store?<br />
+The latter spells a serious security hole, as the user's cookie still remains in the browser session until it expires after a specified amount time. That means this user will continue to have access to the application, even though technically he does not exist anymore!</p>
+<p>That said, we need to find a way to respond to these back-end changes, by either updating claims whose value has changed or reject the principal (destroy the cookie) if user does not exist anymore.<br />
+Thankfully, ASP.NET Core provides a way to tackle this by the<code>CookieAuthenticationEvents</code> class, which is part of the<code>Microsoft.AspNetCore.Authentication.Cookies</code> namespace. Let's see how it works.</p>
+<h2>Implementation</h2>
+<p>To start listening to events you should setup cookie authentication in Startup.cs.<br />
+There you can define either some inline delegate handlers or a class which derives from <code>CookieAuthenticationEvents</code>.</p>
+<p>I will focus on the OOP approach rather delegates in this post, though it is really easy to setup an inline delegate, you just need to use the <code>Events</code> property on the <code>CookieAuthenticationOptions</code> class, which is passed as an input in the <code>AddCookie</code> method overload.</p>
+<p>{% gist bff5e6f45b756352c12ed011041bdc00  %}</p>
+<p><code>Events</code> property, which is a type of <code>CookieAuthenticationEvents</code>, supports more event handlers which are the following:</p>
+<ul>
+<li><code>OnRedirectToAccessDenied</code>: Event is invoked when application is redirecting to access denied screen.</li>
+<li><code>OnRedirectToLogin</code>: Event is invoked when a redirect to login page occurs.</li>
+<li><code>OnSigningOut</code>: This event is invoked before the user signs out.</li>
+<li><code>OnSignedIn</code>: This event is invoked when the user has signed in.</li>
+<li><code>OnSigningIn</code>: This event is invoked before the user signs in.</li>
+<li><code>OnValidatePrincipal</code>: This event is invoked on each request for an authenticated user and can be used to overwrite the existing cookie identity.</li>
+<li><code>OnRedirectToLogout</code>: This event is invoked when a redirect to logout page occurs.</li>
+<li><code>OnRedirectToReturnUrl</code>: This event is invoked when a redirect to the return URL that is specified occurs.</li>
+</ul>
+<p>And the official documentation's definition for this property is:</p>
+<blockquote><p>The handler calls methods on the provider that give the app control on certain processing points. If events aren't provided, a default instance is supplied that does nothing when the methods are called.</p></blockquote>
+<p>For more info, check out ASP.NET Security repository implementation of <a href="https://github.com/aspnet/Security/blob/dev/src/Microsoft.AspNetCore.Authentication.Cookies/Events/CookieAuthenticationEvents.cs">CookieAuthenticationEvents</a>.</p>
+<h4>OOP approach</h4>
+<p>An OOP approach is recommended when you wish to inject and work with other dependencies, for instance certain service implementations.</p>
+<p>To register a class that handles the cookie events mentioned earlier, you need to assign it to the <code>EventsType</code> property of <code>CookieAuthenticationOptions</code> class in cookie setup. This property as it name states, takes a type, which must be a type of <code>CookieAuthenticationEvents</code>. Let's see its definition by the official documentation:</p>
+<blockquote><p>Used as the service type to get the Events instance instead of the property</p></blockquote>
+<p>That said, let's take a look at the following code snippet.</p>
+<p>{% gist cfcc7941b05d217da238815c047bb2a4  %}</p>
+<p>I have created a custom <code>CookieEvents</code> class, which inherits from <code>CookieAuthenticationEvents</code>. First, I register this class on the container, in this scenario I added this as scoped. Registering this class as scoped makes sense, as this is going to be invoked for each request.<br />
+After some standard cookie authentication setup, I assign the result of <code>typeof(CookieEvents)</code> to the <code>EventsType</code> property. Presto, we are done with the configuration, let's implement this class.</p>
+<h5>CookieEvents</h5>
+<p>This class inherits from <code>CookieAuthenticationEvents</code>, which contains virtual method handlers for all the events mentioned earlier. I have defined as dependencies the <code>IUserRepository</code>, which contains methods to fetch a user by his username and the <code>ILogger</code> service to log messages to the database and more specifically to the <code>[dbo].[Log]</code> table.<br />
+Following snippet shows the class declaration and the constructor implementation. I will explore this class method by method until I reach to the <code>ValidatePrincipal</code> method, which is the main point of interest.</p>
+<p>{% gist 0813d3f56cf5889efd43eb89828fd142  %}</p>
+<p>More info on how to setup a custom database logger in ASP.NET coming later. For now I will focus on the virtual methods I've overridden and these are <code>SignedIn</code>, <code>SigningIn</code> and <code>ValidatePrincipal</code> methods.</p>
+<p><strong>SignedIn<br />
+</strong>In this method I just log an information message to the database on the user that has signed in. This handler is invoked when a user has successfully signed in.</p>
+<p>{% gist 8b622bd5f44e4556ca5546719518213e  %}</p>
+<p><strong>SigningIn</strong></p>
+<p>This method is called when a user attempts to sign in. Looking at its context passed, the <code>CookieSigningInContext</code>, it doesn't let you do much, as it is invoked early in the request lifecycle, at best its a good place to modify some cookie options before signing the user in. That's what I am doing in the following code, I change the default <code>SameSiteMode</code> from <code>Lax</code> to <code>Strict</code>. More info on <code>SameSiteMode</code>:</p>
+<blockquote><p>Indicates whether the browser should allow the cookie to be attached to same-site requests only (<code>SameSiteMode.Strict</code>) or cross site requests using safe HTTP methods and same-site requests (<code>SameSiteMode.Lax</code>). When you set the <code>SameSiteMode.None</code> the cookie header value isn't set. The cookie policy middleware might overwrite the value that your provide. To support OAuth authentication, the default value is <code>SameSite.Lax</code>.</p></blockquote>
+<p>My application doesn't include any cross site requests, or OAuth, so it safe to change the <code>SameSiteMode</code> to <code>Strict</code>.</p>
+<p>{% gist 7a7527fbe7b81b9cb561f5ac2d1189c4  %}</p>
+<p>Next up, is the <code>ValidatePrincipal</code> method (in ASP.NET Core 1.x it was <code>ValidateAsync</code>, in 2.0+ it is <code>ValidatePrincipal</code>). As mentioned earlier, this method intercepts each authenticated request, and judging by its context, it does let you access the current <code>HttpContext</code> fully, as well as the current authenticated <code>ClaimsPrincipal</code>. Through this method I am able to modify the user's claims and his/her principal or even reject the principal and essentially throw him/her out. Take a look at the implementation below and I will come back and discuss its bits and pieces.</p>
+<p>{% gist 5f0062ae9f5cbffc1bcc6c1c115124bf  %}</p>
+<p>Pretty much standard implementation, at first I check if the user is indeed authenticated and the Name claim is populated, because in order to fetch his additional claims, I need the unique username stored in the Name claim.</p>
+<p>Now, the entire process of updating the <code>ClaimsPrincipal</code> if there are any back-end changes is wrapped within a <code>try..catch</code> block, whereas in the case of an exception, I log the exception thrown, into the database and then reject the principal entirely, which logs the user out. Of course, you might not want that in your case, you might still want the user logged in, though for demo purposes, I'd like to log him out in case of error.</p>
+<p>So, I am using the <code>IUserRepository</code> to find a user by a username and in case I don't find him, it means that he has been deleted from the database, so I immediately reject the principal, again, signing him out. But in the case I find the user, then I run a series of tests to identify the change, update the the claims and user's cookie.<br />
+I have a convention in the <code>[dbo].[User]</code> table, when an update occurs, the <code>UpdatedOn</code> field is updated with the current date and time. I've added a custom claim in the cookie with the arbitrary <code>ClaimType</code> of <code>"UpdatedOn"</code> which is a <code>DateTime</code> value. Check out the <code>LoginAsync</code> method in <code>AuthController</code>, it is changed a bit to include the UpdatedOn claim.</p>
+<p>{% gist 1ed18fd49272da47b8158375ee87c744  %}</p>
+<p>So, if an update occurs for a particular user, the <code>UpdatedOn</code> field will be invalidated with a new <code>DateTime</code> value, which is exactly what I am testing here, I am testing the claim value stored in the cookie against the database value. If the value fetched from the database is a future <code>DateTime</code>, then it means something was changed, so better proceed into updating the cookie's identity values and user's current principal (his cookie).</p>
+<p>By updating the user's claims, I then proceed into creating a new <code>ClaimsIdentity</code> instance, of course based on the existing user claims and authentication type for that identity and then onto creating a new <code>ClaimsPrincipal</code>. In order to update the current principal, use the <code>ReplacePrincipal</code> method of the context and pass your new <code>ClaimsPrincipal</code> there. Be sure to set the <code>ShouldRenew</code> property of the context to true if you want to update the principal. Notice that we do not need to return anything, all the heavy lifting is done by the context passed.</p>
+<p>The snippet below shows the private helper methods that are used by the <code>ValidatePrincipal</code> handler.<br />
+<code>UserIsNotAuthenticatedOrNameClaimIsEmpty</code> method is self explanatory, so let's move to the others.<br />
+The <code>UpdateUserClaimsIfModified</code> is just running through all the cookie claims and if it detects a change it updates that claim, using the <code>UpdateClaimIfChanged</code> method.</p>
+<p>{% gist d4a45e6e73dfbda1f8e960c9bcb3415d  %}</p>
+<p>Also, something that you should know, is that you cannot access additional claims from this method. Let's say you have a <code>IClaimsTransformation</code> implementation in place and you want to access the claims generated by the profile store. Well, you cannot, as these are stored in the cookie per request and you won't be able to access them from the <code>ValidatePrincipal</code> method, as this runs first in the request lifecycle.</p>
+<h4>Bonus - ASP.NET Core 2.0 database logging</h4>
+<p>This is a bonus section, I will briefly explain about ASP.NET Core logging and how to make a database logging provider.</p>
+<p>First, take a glance on the log table, which I store the log events.</p>
+<p>{% gist 22dc013b991e1042d691f325b72bfbd5  %}</p>
+<p>And this is the <code>EventLog</code> model that I construct for logging an event in the database.</p>
+<p>{% gist 0875250c9fc802af08cb77d4db43d8d7  %}</p>
+<p>And now follows a snippet from the <code>Startup.cs</code> configuration class.<br />
+In order to implement logging in ASP.NET Core, you need an <code>ILoggerFactory</code>, which is an object that supports various kinds of logs and can be injected/configured in the <code>Configure</code> method. Having a logging factory, I can add various providers to it, build-in or custom. Then as your code requests for a certain logger, the logger factory will use the logger provider to create a new logger.</p>
+<p>In the code below, you can see the high overview implementation, I register a custom <code>ILoggerProvider</code>, which is the <code>DatabaseLoggerProvider</code> to the <code>ILoggerFactory</code>, passing some dependencies, which are</p>
+<ol>
+<li>The database commander, which communicates with the underlying database.</li>
+<li>A filter function, which declares the permitted categories for the Logger to log. In this case, the category string will be the class from which the logger was called.</li>
+</ol>
+<p>{% gist c3bb95dbfa4fa7e1e7dea2a099adbbe7  %}</p>
+<p>So, that said our first move would be to create LoggerProvider, which is a class that implements the <code>ILoggerProvider</code> interface, with <code>CreateLogger</code> and <code>IDisposable.Dispose</code> methods. In <code>CreateLogger</code> we return an instance of a logger class that implements the <code>ILogger</code> interface.<br />
+As you see, the provider is fairly simple, I just instantiate a new <code>DatabaseLogger</code> in the <code>CreateLogger</code> method, passing the <code>categoryName</code> and the filter that I declared earlier in the <code>Configure</code> method.</p>
+<p>{% gist 3b2fa34fa41b250c77b8ceb87d130a49  %}</p>
+<p>The ILogger interface contains three methods to implement</p>
+<ul>
+<li><code>IDisposable BeginScope&lt;TState&gt;(TState state)</code>. This method provides the logger the ability to generate a disposable scope, essentially adding some context to the log events of that logger. Check out this post for more info on <a href="https://nblumhardt.com/2016/11/ilogger-beginscope/">BeginScope semantics</a>.</li>
+<li><code>bool IsEnabled(LogLevel level)</code>. This method takes a LogLevel and tells the caller whether that LogLevel satisfies this specific logger. Of course, you can have a more fine-grained control on under which circumstances you enable this logger.</li>
+<li><code>void Log&lt;TState&gt;(...)</code>. This method has a fairly lengthy signature, so I omitted it. This is where the logging actually happens.</li>
+</ul>
+<p>{% gist c5f147bc89a3bf4c3a93769d05028cf2  %}</p>
+<p>In order for the logger to log to the database, it first needs to know if it's allowed to do so, by calling the <code>IsEnabled</code> method, where I filter the category based on the categories that I allow to log. Remember, category is going to be the full class name in which a call to the logger was issued.<br />
+Then, I construct the <code>EventLog</code> object and log it into the database, calling the <code>Execute</code> method of the Syrx commander.</p>
+<h2>Action!</h2>
+<p>Let's see all these in action. I run the application, which opens a new browser window.</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_1.png"><img class="alignnone size-full wp-image-754" src="{{ site.baseurl }}/assets/2018/03/screenshot_1.png" alt="" width="750" height="418" /></a></p>
+<p>Let's try to login. This will create a new log entry in the <code>[dbo].[Log]</code> table.</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_2.png"><img class="alignnone size-full wp-image-755" src="{{ site.baseurl }}/assets/2018/03/screenshot_2.png" alt="" width="750" height="414" /></a></p>
+<p>And indeed, after I hit Submit, it logs the sign-in event.</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_3.png"><img class="alignnone size-full wp-image-756" src="{{ site.baseurl }}/assets/2018/03/screenshot_3.png" alt="" width="750" height="190" /></a></p>
+<p>Let's try and modify logged-in user's email, to <code>john.doe@email.com</code>. First, I will visit the <code>/profile</code> page to verify the user's claims. Email address is the last claim in the list.</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_4.png"><img class="alignnone size-full wp-image-757" src="{{ site.baseurl }}/assets/2018/03/screenshot_4.png" alt="" width="750" height="762" /></a></p>
+<p>I will update the <code>UpdatedOn</code> field as well to the current date.</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_5.png"><img class="alignnone size-full wp-image-758" src="{{ site.baseurl }}/assets/2018/03/screenshot_5.png" alt="" width="326" height="172" /></a></p>
+<p>If I reload the page, I will see the email address updated.</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_6.png"><img class="alignnone size-full wp-image-759" src="{{ site.baseurl }}/assets/2018/03/screenshot_6.png" alt="" width="750" height="768" /></a></p>
+<p>I will try to remove that user now. I expect me to automatically sign-out after a refresh. First, I will delete the user from the database.</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_7.png"><img class="alignnone size-full wp-image-760" src="{{ site.baseurl }}/assets/2018/03/screenshot_7.png" alt="" width="302" height="166" /></a></p>
+<p>And now I will try to hit <code>F5</code> and I should redirect to the login page (<code>/profile</code> is protected, that's why I am send back to login. If I try to navigate somewhere else, for instance <code>/home</code>, I will just see that I am no longer signed-in).</p>
+<p><a href="{{ site.baseurl }}/2018/03/screenshot_8.png"><img class="alignnone size-full wp-image-761" src="{{ site.baseurl }}/assets/2018/03/screenshot_8.png" alt="" width="750" height="285" /></a></p>
+<h2>Summary</h2>
+<p>In this post we saw how it is possible to respond to back-end changes by either updating the values that have changed or by signing-out the user in question, essentially destroying the associated cookie, thus avoiding security holes, like users that shouldn't exist, still lurking around, all this thanks to <code>CookieAuthenticationEvents</code> class.</p>
+<p>Github repository is <a href="https://github.com/gdyrrahitis/bpost-aspnetcore-local-logins/tree/backend-changes">here</a>.</p>
+<p>In coming posts, I will continue with local logins, talking about authorization policies and then move to social logins with various providers.</p>
+<hr />
+<p>This post is part of the <em>ASP.NET Core 2.0 Authentication series</em>.</p>
+<ol>
+<li><a href="https://wp.me/p7uERY-85">ASP.NET Core 2.0 Cookie Authentication - Local logins</a></li>
+<li><a href="https://wp.me/p7uERY-aP">ASP.NET Core 2.0 Authentication with local logins - Implementing claims transformation</a></li>
+<li><a href="https://wp.me/p7uERY-aX"><strong>ASP.NET Core 2.0 Authentication with local logins - Responding to backend changes</strong></a></li>
+<li><a href="https://wp.me/p7uERY-aV">ASP.NET Core 2.0 Authentication with local logins - Implementing custom authorization policies</a></li>
+<li><a href="https://wp.me/p7uERY-9V">ASP.NET Core 2.1 Authentication with social logins</a></li>
+<li><a href="https://wp.me/p7uERY-aR">ASP.NET Core 2.0 Authentication with social logins - Implementing a profile store</a></li>
+<li><a href="https://wp.me/p7uERY-ib">ASP.NET Core 2.0 Authentication with Azure Active Directory</a></li>
+<li><a href="https://wp.me/p7uERY-aT">ASP.NET Core 2.0 Authentication with Azure Active Directory B2C</a></li>
+<li>ASP.NET Core 2.0 Authentication, IdentityServer4 and Angular</li>
+</ol>

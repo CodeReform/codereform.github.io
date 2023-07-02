@@ -1,0 +1,146 @@
+---
+layout: post
+title: ASP.NET Core 2.0 Authentication with local logins - Implementing claims transformation
+date: 2018-03-07 22:53:38.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET Core"
+- C#
+tags:
+- ASP.NET Core 2.0
+- Authentication
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _thumbnail_id: '714'
+  draftfeedback_requests: a:1:{s:13:"5a91d08a9509b";a:3:{s:3:"key";s:13:"5a91d08a9509b";s:4:"time";s:10:"1519505546";s:7:"user_id";s:8:"75937724";}}
+  _publicize_job_id: '15493019305'
+  timeline_notification: '1520463218'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/03/07/asp-net-core-2-0-authentication-with-local-logins-implementing-claims-transformation/"
+---
+<p>ASP.NET Core 2.0 makes it very easy and straightforward to setup a cookie authentication mechanism in your application. Framework provides numerous ways to achieve that, with or without <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity?tabs=visual-studio%2Caspnetcore2x">ASP.NET Core Identity</a> membership system.</p>
+<p>This post is part of a series on ASP.NET Core 2.0 Authentication and I am about to talk about cookie authentication and claims transformation.<br />
+<!--more--></p>
+<h2>Application</h2>
+<p>In this demo, I am going to talk about claims transformation in ASP.NET Core 2.0. The application in question is based on previous post of this series, <a href="https://wp.me/p7uERY-85">ASP.NET Core 2.0 Cookie Authentication - Local logins</a>, so if you haven't followed along, it would be better to check this out first before diving into code that's coming next.</p>
+<p>As I mentioned earlier, this application is based on a previous demo, which is using cookie authentication to authenticate a valid user into the MVC web application. I thought about making this a little bit more interesting, so I stripped out the in-memory user store, and I replaced it with a database back-end store, more specifically on SQL Server.<br />
+The schema implemented is the following:</p>
+<p><a href="{{ site.baseurl }}/2018/02/screenshot_schema.png"><img class="alignnone size-full wp-image-716" src="{{ site.baseurl }}/assets/2018/03/screenshot_schema.png" alt="" width="305" height="583" /></a></p>
+<p>So, we have a table where we store our users and a <code>UserClaims</code> table, whereas we store additional claims for a given user.</p>
+<p>Goal of this application is to create a cookie with some fixed/static claims and then enhance that cookie with additional claims that come from the back-end store. All claims for the authenticated user will be shown in the <code>/profile</code> page.</p>
+<p><a href="{{ site.baseurl }}/2018/02/screenshot_profile.png"><img class="alignnone size-full wp-image-718" src="{{ site.baseurl }}/assets/2018/03/screenshot_profile.png" alt="" width="750" height="633" /></a></p>
+<p>Our web application remains an ASP.NET Core 2.0 MVC application.<br />
+For back-end store I have chosen Microsoft SQL Server 2014.<br />
+Application is communicating with database through <a href="https://github.com/Syrx/">Syrx</a>, a fun, modular micro-ORM wrapper, which is based on Dapper. If you haven't yet tried it, please give it a shot, as it's goal is to make developer's life easier and works across all the same providers supported by Dapper including MySQL, PostgreSQL and SQL Server. For the rest of the series, I am going to use this library to communicate with relational database stores.<br />
+<em>Disclaimer</em>: I am contributor on Syrx. I plan to dedicate a few posts on Syrx, so stay tuned.</p>
+<p>Code can be found on<a href="https://github.com/gdyrrahitis/bpost-aspnetcore-local-logins/tree/claims-transformation">Github</a>.</p>
+<h2>What is claims transformation</h2>
+<p>An application's life cycle does not end when a team delivers it for production usage. Applications are maintained and they live as long as the organization building them gains profit (else they probably pull the plug and the lights go off - so might the team). So, throughout its life an application goes through maintenance (i.e. bug fixing) or enhancement, which essentially means, more features are added.</p>
+<p>This growth sometimes means, that the application might require more than it already has. For example, the application that was build initially had some limited requirements and for authentication it needed only a cookie with some specific claims. That is okay, but what happens when new requirements come into play, which might mean that the authentication mechanism should be enhanced to meet those requirements. What about additional information about users, which might change frequently and needed for specific actions/behaviors in the application?</p>
+<p>Or what about the scenario in which we have more claims for a user than we can put into his/hers authentication cookie?</p>
+<h4>Enter claims transformation</h4>
+<p>Claims transformation can be used to modify user's claims on incoming requests, thus storing minimal amount of information in the authentication cookie and enhancing the authentication process, by adding the rest as the request comes into the server.</p>
+<p>These claims can be stored in a database and retrieved for each request, adding more value into user's identity.</p>
+<p>ASP.NET Core 2.0 has the <code>IClaimsTransformation</code> interface, which can be implemented by a service, for example, to add/remove/edit claims for a authenticated user. Use the <code>TransformAsync</code> method to define your application logic.<br />
+Then, we just need to add this class into DI and the framework knows what to do from here.</p>
+<p>That said, let's take a look in the implementation.</p>
+<h2>Implementation</h2>
+<p>First, I will talk briefly about database and how to provision your db with schema and data.<br />
+Schema for <code>User</code> and <code>UserClaims</code> tables is the following:</p>
+<p>{% gist 349726ce6109ce9a70625471e6d2f37b %}</p>
+<p>{% gist 8b4142ad37e2df4467e37aea49843302  %}</p>
+<p>In order to not overwhelm this post with SQL related code, if you wish to follow along, go to my repository and under <code>sql</code> folder run the <code>setup.cmd</code> command in command prompt window. This contains some batch code, which is using <code>sqlcmd</code> <a href="https://technet.microsoft.com/en-us/library/ms165702(v=sql.105).aspx">utility</a> to setup the database schema and provision these tables with data. It can be found <a href="https://github.com/gdyrrahitis/bpost-aspnetcore-local-logins/tree/claims-transformation/Authentication.Local/sql">here</a>.<br />
+Clone the repository in your local machine, open a command prompt window, navigate to the directory where <code>setup.cmd</code> lives and type <code>setup.cmd</code>. Great, your database now is ready, with schema and data in place.<br />
+Please note, this is how I will provision database schema and data for the rest of the series as well.</p>
+<p>Let's proceed to the rest of the application.<br />
+Screen should be similar to the following.</p>
+<p><a href="{{ site.baseurl }}/2018/02/screenshot_cmd.png"><img class="alignnone size-full wp-image-734" src="{{ site.baseurl }}/assets/2018/03/screenshot_cmd.png" alt="" width="750" height="181" /></a></p>
+<h4>Models</h4>
+<p>Now that we have the back-end store ready, let's create the related POCO models that we are going to use in the application. First, the <code>User</code> model</p>
+<p>{% gist 0a8fe7f94595eb6e52a9532d4c14b1df  %}</p>
+<p>And the <code>UserClaims</code> model</p>
+<p>{% gist 9bb2c9cdeb437de13d942e5aaf40f3f6  %}</p>
+<p>As you see, nothing special, we just modeled our tables into valid C# classes.</p>
+<h4>Repositories</h4>
+<p>Having a database as a back-end store, we have to implement our own repositories to deal with it. Repositories provide a way to abstract away the underlying store, by hiding its implementation details. In this case, our repositories will hide away the implementation details of Syrx <code>ICommander&lt;&gt;</code> from the service layer.<br />
+Let's see the <code>UserRepository</code> implementation, which is responsible to fetch users by username.</p>
+<p>{% gist 211ac4ec9a401beb127591fe81a58693  %}</p>
+<p>Pretty neat huh? I inject the Syrx's <code>ICommander</code> in the constructor and to query the database, I use the <code>QueryAsync&lt;User&gt;(new { userName })</code> method, passing the SQL parameters for the query. That's pretty much it! You might be wondering, where is the SQL code? Well, Syrx does a very good job abstracting this away from C# code, as it comes with some configuration in hand.<br />
+In <code>appsettings.json</code>, I have declared some configuration for this method, which contains the SQL code that is executed against the database.</p>
+<p>{% gist 6fa19c3d2f03e1277c47e011b7e60333  %}</p>
+<p>Same applies for <code>UserClaimsRepository.cs</code>, which returns a list of claims for a user</p>
+<p>{% gist 747a9016f49e00506b663a0764996b5c  %}</p>
+<p>Now that repositories are ready, let's move into services.</p>
+<h4>Services</h4>
+<p>If you have been following along, you might remember from a previous post, I was using the <code>UserService</code> service to validate user credentials against an in-memory store. Let's see how this service is changed, now that it has to use a repository to fetch data from.</p>
+<p>{% gist 01acfe1d06059f8f029610896e5fd040  %}</p>
+<p>Method <code>ValidateUserCredentialsAsync</code> has not changed much, at least at its core, its behavior remains the same, it retrieves a user by username and validates against that user the given password (beware, passwords are passed as plain text here, they'd better be hashed).<br />
+<code>FindUserByUserNameAsync</code> is just fetching a single user by his/hers username.</p>
+<p><code>UserClaimsService</code> follows the same norm, it implements the method <code>FindUserClaimsByUserNameAsync</code> and calls the underlying repository to get the desired data.</p>
+<p>{% gist 20f4616384dba3fb469229e9af5e3a77  %}</p>
+<p>Great, now services are ready, we can move on to controllers!</p>
+<h4>Controllers</h4>
+<p>Only <code>AuthController</code> has seen some changes from previous post, while <code>HomeController</code> remained the same.<br />
+No major changes though, as only a few lines are added into the <code>LoginAsync</code> method, as this demo sets up more claims for the authenticated user.</p>
+<p>{% gist 2696d94c5de1e394090abc563fb9fee3  %}</p>
+<p>So in this demo, we create a new authentication cookie for a user with the following claims in place:</p>
+<ul>
+<li>NameIdentifier</li>
+<li>Name</li>
+<li>GivenName</li>
+<li>Surname</li>
+<li>Email</li>
+<li>DateOfBirth</li>
+</ul>
+<p>If we could run the application now (assume that we have registered all required services and repositories in DI), we wouldn't be able to see any difference from the previous one, as from functionality perspective, it does the same. And it does not yet include the additional claims that are stored in the database.<br />
+We have some additional claims stored for the user, namely:</p>
+<ul>
+<li>Gender</li>
+<li>Country</li>
+<li>MobilePhone</li>
+</ul>
+<p><em><strong>This is the user's profile store. You can store whatever you like there. Most common is to store identity related data that is frequently changing, which is a problem that claims transformation solves.</strong></em></p>
+<p>Our profile store at the moment is the <code>UserClaimsRepository</code> repository, which implementation hides behind <code>UserClaimsService</code>. We need to find a way to add these additional claims to the user's identity.</p>
+<h4>Claims transformation service</h4>
+<p>Let's create a new class, I name it <code>ProfileClaimsTransformationService</code>, it's a mouthful, I know, and implement the <code>IClaimsTransformation</code> interface.<br />
+Let me add the implementation and I will walk you through.</p>
+<p>{% gist 92fdc7486042fb8c7c023372ad701bd9  %}</p>
+<p>First, I inject the profile store, aka the <code>IUserClaimsService</code>, so I can have access to underlying data.<br />
+All heavy-lifting is done in <code>TransformAsync</code> method, which receives a <code>ClaimsPrincipal</code>. Be advised, that this method is called on every incoming request, of course when the user is authenticated, so you should keep it as lean as possible, as it might affect your application's performance if the code that runs there is doing too much.</p>
+<p>In <code>TransformAsync</code>, first, I get the authenticated identity. If it is <code>null</code>, then I return immediately.</p>
+<p>Then, I get the <code>NameIdentifier</code> claim (I could as well fetch the Name claim, as it is more common to see a username in the <code>Name</code> claim, though in my case I have set the <code>NameIdentifier</code> as well as the <code>Name</code> claim to have the username value. Most common use is to store the user's <code>GUID</code> in <code>NameIdentifier</code> and the username in <code>Name</code>, though many applications store username in both claim types) and if I don't find it, then I cannot proceed with completing the user's profile, returning the principal untouched, on the spot.</p>
+<p>After that, having the <code>NameIdentifier</code>, I am using the <code>IUserClaimsService</code> service to fetch all stored claims for that user and if I don't find anything, I just return the <code>ClaimsPrincipal</code> untouched.</p>
+<p>Now that I got the additional stored claims for that user, it's time to update his <code>ClaimsPrincipal</code>, by creating a new <code>ClaimsPrincipal</code>, which means that we need a new <code>ClaimsIdentity</code> as well, leading us in creating a new claims list with all the claims the user already had <strong>and</strong> the ones that he got from the profile store.</p>
+<p>Word of caution here. You might argue that it is faster to just modify the existing <code>ClaimsPrincipal</code> object, by adding the claims that we got into the <code>Claims</code> list. That seems perfectly reasonable, except that this is risky, because this method is called in each incoming request, which means it might be called multiple times, thus resulting in adding duplicate claims.<br />
+Claims transformation should adopt a more defensive approach and return a new principal when called.</p>
+<h4>Configuration</h4>
+<p>We are ready to go, but not yet! We need to register this bad boy on the DI, so framework will be able to pick it up and do its magic behind the scenes. We need to register the <code>IClaimsTransformation</code> object, which should be the <code>ProfileClaimsTransformationService</code> and all the other related repositories and services. Rest of the <code>Startup.cs</code> is not changed since previous post.<br />
+I am not going to show all configuration setup for this application, for more info check the source code in the repository, I will show you the bare minimum, the services and the claims transformation service registration.</p>
+<p>{% gist dea3346e951eaa5f204e6d19b5737592  %}</p>
+<p>Line 5 is the line of interest here, this registers the <code>IClaimTransformation</code> in DI, so our application now can perform claims transformation.</p>
+<p>If you've been following along, run the application now and navigate to <code>/profile</code>, you will be able to see the same screen as the one presented earlier (see at top) in this post.</p>
+<h2>Summary</h2>
+<p>In this post, we saw how to define a profile store for an authenticated user, how to enhance his identity through this store, using the <code>IClaimsTransformation</code> interface by ASP.NET Core 2.0, as well as some caveats this approach has.</p>
+<p>In next related posts, I am going to talk about how to respond to back-end changes, by utilizing some cookie events and how these are related with claims transformation, as well as talk about authorization policies.</p>
+<p>Code repository can be found <a href="https://github.com/gdyrrahitis/bpost-aspnetcore-local-logins/tree/claims-transformation">here</a>.</p>
+<hr />
+<p>This post is part of the <em>ASP.NET Core 2.0 Authentication series</em>.</p>
+<ol>
+<li><a href="https://wp.me/p7uERY-85">ASP.NET Core 2.0 Cookie Authentication - Local logins</a></li>
+<li><a href="https://wp.me/p7uERY-aP"><strong>ASP.NET Core 2.0 Authentication with local logins - Implementing claims transformation</strong></a></li>
+<li><a href="https://wp.me/p7uERY-aX">ASP.NET Core 2.0 Authentication with local logins - Responding to backend changes</a></li>
+<li><a href="https://wp.me/p7uERY-aV">ASP.NET Core 2.0 Authentication with local logins - Implementing custom authorization policies</a></li>
+<li><a href="https://wp.me/p7uERY-9V">ASP.NET Core 2.1 Authentication with social logins</a></li>
+<li><a href="https://wp.me/p7uERY-aR">ASP.NET Core 2.0 Authentication with social logins - Implementing a profile store</a></li>
+<li><a href="https://wp.me/p7uERY-ib">ASP.NET Core 2.0 Authentication with Azure Active Directory</a></li>
+<li><a href="https://wp.me/p7uERY-aT">ASP.NET Core 2.0 Authentication with Azure Active Directory B2C</a></li>
+<li>ASP.NET Core 2.0 Authentication, IdentityServer4 and Angular</li>
+</ol>

@@ -1,0 +1,102 @@
+---
+layout: post
+title: ASP.NET Core 2.0 Authentication with Azure Active Directory
+date: 2018-05-23 11:04:15.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET Core"
+- C#
+tags:
+- ASP.NET Core 2.0
+- Authentication
+meta:
+  _edit_last: '75937724'
+  _thumbnail_id: '1128'
+  geo_public: '0'
+  enclosure: |
+    https://georgedyrra.files.wordpress.com/2018/05/bpost-azure-ad-20180523_114048.mp4
+    2187354
+    video/mp4
+  _publicize_job_id: '18164542478'
+  timeline_notification: '1527073455'
+  _oembed_c30ce6552d3e5ad4ab3d875ddc04ea95: "{{unknown}}"
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/05/23/asp-net-core-2-0-authentication-with-azure-active-directory/"
+---
+<p>In previous posts of this series, <em>ASP.NET Core 2.0 Authentication</em>, I talked about local logins, where you have your own identity management solution and also social logins, where you work with social media or third party providers to sign in users in your application. In this one, I am going to talk about Azure Active Directory, which is a cloud based solution for identity management and how you can make this work with your ASP.NET Core 2.0 application.</p>
+<p><!--more--></p>
+<h2>Source code</h2>
+<p>Code outlined in this article can be found on my <a href="https://github.com/gdyrrahitis/bpost-aspnetcore-azure-ad">GitHub repository</a>.</p>
+<h2>What is Azure Active Directory</h2>
+<p>Azure Active Directory (AD) is a cloud based solution for identity management, which provides a rich suite of features on user, group, application, security and many other features among them into one consolidated solution.</p>
+<p>From the <a href="https://docs.microsoft.com/en-us/azure/active-directory/active-directory-whatis">official documentation</a>:</p>
+<blockquote><p>Azure Active Directory (Azure AD) is Microsoft’s multi-tenant, cloud-based directory, and identity management service that combines core directory services, application access management, and identity protection into a single solution. Azure AD also offers a rich, standards-based platform that enables developers to deliver access control to their applications, based on centralized policy and rules.</p>
+<p><a href="{{ site.baseurl }}/2018/05/azure_active_directory.png"><img class="alignnone size-full wp-image-1133" src="{{ site.baseurl }}/assets/2018/05/azure_active_directory.png" alt="" width="715" height="300" /></a></p></blockquote>
+<p>As you can see, this is powerful, it provides lots and lots of identity services and it fits very well in cloud but also in on-premises solutions as well, integrating excellently with enterprise Windows Server Active Directory to manage SaaS application's access. Of course, it plays well with Office 365 applications and Microsoft Dynamics CRM online.</p>
+<p>It is a very common scenario, that often companies like to store their users in an active directory and prefer to have applications integrate with that instead of building something custom, like I did in previous posts in this series. It is costly to have in-house solutions for that kind of stuff because you have to manage a lot of things, like the users first of all, their groups, the resources that they can have access (by resources I mean their claims). It becomes a tedious process after some time and I know, because I had to work in a real world application that had this kind of identity management solution. It was error prone, we had been called a lot of times to amend problems with access, or the whole system sometimes was crashing because of various reasons. Especially in the latter scenario, such thing was capable of bringing down lots of applications, including applications we own and the worst part is that this system wasn't ours in the first place, someone else was looking after it, so we had to wait for them to come up with a fix.</p>
+<p>Well, you won't find such problems in Azure AD, cause this service is highly reliable, as it is geo-distributed, running in 28 data centers around the world with automated failover. Even if the data center that your service lives in goes down, copies of your directory data live in other regions, so facing downtime would be virtually impossible through Azure.</p>
+<p>As a developer I would choose this identity management solution for the single reason that I don't want to mess around with managing identity in the first place. I want to focus on building my application based on the business requirements I have. Security is super important, but it is a detail, in terms of development and it shouldn't get in my way. That's why Azure AD is there, to take that burden away from me, it is battle tested, serving millions of organizations, many of them Fortune-500, around the globe. So why not use it? Plus the application(s) user is going to be happy, as he/she will have to deal with only one login for every application that we own, which is huge, especially in corporate scenarios.</p>
+<p>Azure AD has a Free edition in which you can manage your users and groups, utilize the single sign-on features across many SaaS applications and many other. It of course provides three paid capabilities, which include more features.</p>
+<h2>Application</h2>
+<p>Before starting, you need an Azure subscription. If you don't have, you can use the<a href="https://azure.microsoft.com/en-us/offers/ms-azr-0044p/">free trial</a> which provides €170 credit to spend for 30 days and 12-month free access to certain Azure services. I am going to use the free version of Azure AD anyways. I will create a new directory from scratch in following example.</p>
+<p>After you login in Azure, choose the Azure Active Directory and create a new directory there.</p>
+<p><a href="{{ site.baseurl }}/2018/05/azure-active-directory.png"><img class="alignnone size-full wp-image-1139" src="{{ site.baseurl }}/assets/2018/05/azure-active-directory.png" alt="" width="750" height="426" /></a></p>
+<p>Now enter your organization name and a domain name, it should be unique,</p>
+<p><a href="{{ site.baseurl }}/2018/05/create.png"><img class="alignnone size-full wp-image-1138" src="{{ site.baseurl }}/assets/2018/05/create.png" alt="" width="380" height="383" /></a></p>
+<p>Wait a few moments and it will be ready. If you go to Azure Active Directory blade again, you will be able to switch directory. If it is ready, switch to your new directory and let's add some users. Check the screenshot below to see an overview of users.</p>
+<p><a href="{{ site.baseurl }}/2018/05/user.png"><img class="alignnone size-full wp-image-1140" src="{{ site.baseurl }}/assets/2018/05/user.png" alt="" width="750" height="414" /></a></p>
+<p>I added a user named <strong>John Doe</strong> with the email of <strong>john.doe@thewisecoderdemo.onmicrosoft.com</strong>. You can add new users by clicking the New user button that is on top menu and you will be able to include various details for that user, manage his/hers groups and stuff like that.</p>
+<p>One last thing before I dive into code, is that I want to register my application with Azure AD, so the directory will be aware of it, so I will be able to login successfully. Go to <strong>App registrations</strong> and click on <strong>New application registration </strong>as shown below.</p>
+<p><a href="{{ site.baseurl }}/2018/05/app-registration1.png"><img class="alignnone size-full wp-image-1142" src="{{ site.baseurl }}/assets/2018/05/app-registration1.png" alt="" width="750" height="523" /></a></p>
+<p>Enter the application name and the sign-on URL, which is the root URL of the application.</p>
+<p><a href="{{ site.baseurl }}/2018/05/create-app.png"><img class="alignnone size-full wp-image-1143" src="{{ site.baseurl }}/assets/2018/05/create-app.png" alt="" width="423" height="440" /></a></p>
+<p>One last thing, you will be redirected to the application blade, click on Settings and change the reply URL to be the root URL plus the <code>/auth/signin-callback</code> path. The reply URL is the callback path.</p>
+<p><a href="{{ site.baseurl }}/2018/05/reply-rul.png"><img class="alignnone size-full wp-image-1144" src="{{ site.baseurl }}/assets/2018/05/reply-rul.png" alt="" width="750" height="371" /></a></p>
+<p>In <strong>Properties</strong>, you will need the Application ID, this is the Client Id that we are going to use for the registered application.</p>
+<p>Now I am ready to code. Application is kinda similar with previous demos, an ASP.NET Core 2.0 web application, so you have a landing page and a profile page, which is secured. In that page you can view the signed-in user claims.<br />
+Azure AD is using the Open Id Connect protocol, so I need to add support for that in the application.</p>
+<p>This is the secured profile page, it's just showing the authenticated user and list all of his/hers claims.</p>
+<p>{% gist 9e0f642b5d0cf790055c92bb468f90ba  %}</p>
+<p>The core part is the authentication setup. In Startup.cs you will have to setup the authentication using Open Id Connect, by the <code>AddOpenIdConnect</code> extension method. So, I first add authentication in the pipeline, then I configure OIDC and finally I am using cookies to sign-in the user. Look at the following configuration and I will go through each setup option.</p>
+<p>{% gist 0445ea9761f199c3af060c3bfa579bcd %}</p>
+<ul>
+<li><strong>Authority</strong>. This tells the system where the OIDC endpoint that I want to use is located. The domain is <em>login.microsoftonline.com</em> and then I provide as path my tenant directory, which in this case is <em>thewisecoderdemo.onmicrosoft.com</em>.</li>
+<li><strong>ClientId</strong>. This is the Application Id for the registered application (you will find it at the Application Properties in Azure AD).</li>
+<li><strong>ResponseType</strong>. The response type that I want to return which is an OIDC Id token in this case.The value of the id_token parameter is the ID Token, which is a signed JWT. Read more <a href="http://openid.net/specs/openid-connect-core-1_0.html#id_tokenExample">here</a> and <a href="http://openid.net/specs/openid-connect-core-1_0.html#HybridAuthRequest">here</a>.</li>
+<li><strong>CallbackPath</strong>. This corresponds to the reply URL (you will find it at the Reply URL blade in Azure AD).</li>
+<li><strong>SignedOutRedirectPath</strong>. This the the path where the application will redirect when I logout. I'm using the application root, so this is going to redirect to the home page after I logout.</li>
+<li><strong>TokenValidationParameters.NameClaimType</strong>. I am using this option to map the name claim type to have the value of the name claim rather what it has by default. The default username contains the tenant name.</li>
+</ul>
+<p>When the user is authenticated, we need to have him logged-in locally using a cookie, so that's why I've added cookie authentication using the <code>AddCookie</code> extension.</p>
+<p>Finally, in <code>AddAuthentication</code> method, I've added the default schemes for challenge, sign-in and authentication. For the <code>DefaultChallengeScheme</code>, I am using the OIDC scheme to tell the system to use the OIDC service by default when we need to get a user authenticated. For the rest, I am using the cookie authentication scheme, for sign-in and incoming request authentication.</p>
+<p>Next step would be to setup the application to let the users sign-in. I have added a controller named <code>AuthController</code>, which has <code>SignIn</code> and <code>SignOut</code> actions. In <code>SignIn</code>, I just have to return a <code>Challenge</code> to the client. The challenge response will then redirect the user to Azure AD. This will be the Authority I've set earlier in configuration. I want also to set the <code>AuthenticationProperties</code> and more specifically the <code>RedirectURL</code> to be the root of the application, in order to avoid an endless loop of redirections. If I haven't done that, when the user would be authenticated, he/she would be redirected back here (in <code>/auth/login</code>) and from here back to Azure AD and so on and so forth.</p>
+<p>{% gist 5ac0fc7e3b9c9dcb97fc6147f1c1b647  %}</p>
+<p>For the <code>SignOut</code> action, notice that I sign out the user twice! First, I sign-out the user in the application, by killing the corresponding local browser cookie. Then, I sign-out from the OIDC authentication with Azure AD. I want to be sure that I have killed any potential authentication session that might still exist in the Azure AD end. The latter will cause a redirect back to the home page, using the <code>SignedOutRedirectUri</code> from the configuration.</p>
+<p>{% gist 92db9a2edb89c92a7c7da44088c4572b  %}</p>
+<p>See this in action.</p>
+<p>[video width="1920" height="1080" mp4="https://georgedyrra.files.wordpress.com/2018/05/bpost-azure-ad-20180523_114048.mp4" autoplay="true" loop="true"][/video]</p>
+<h2>Summary</h2>
+<p>In this post, I showed how to secure your application by using Azure Active Directory to manage access.<br />
+Azure AD is a multi-tenant, cloud based directory in which you can manage groups and users in various ways, providing you application access management and security. You need to have an Azure subscription to create a new directory, which inherently is free, but if you want more features you can try the premium version. You can of course integrate your organization's Windows Active Directory there in order to manage cloud-based application access.</p>
+<p>To integrate with Azure AD in your ASP.NET Core application, you need to use OIDC and provide the required metadata for the Open Id Connect provider. To sign-in you don't have to do anything but return a <code>Challenge</code> and sign-in phase will kick in by its own, returning an identity token back to your application, which can be stored in a cookie to keep the user logged-in for subsequent requests.</p>
+<p>If you liked this blog, please like and share! For more, follow me on <a href="https://twitter.com/giorgosdyrra">Twitter</a>.</p>
+<hr />
+<p>This post is part of the <em>ASP.NET Core 2.0 Authentication series</em>.</p>
+<ol>
+<li><a href="https://wp.me/p7uERY-85">ASP.NET Core 2.0 Cookie Authentication - Local logins</a></li>
+<li><a href="https://wp.me/p7uERY-aP">ASP.NET Core 2.0 Authentication with local logins - Implementing claims transformation</a></li>
+<li><a href="https://wp.me/p7uERY-aX">ASP.NET Core 2.0 Authentication with local logins - Responding to backend changes</a></li>
+<li><a href="https://wp.me/p7uERY-aV">ASP.NET Core 2.0 Authentication with local logins - Implementing custom authorization policies</a></li>
+<li><a href="https://wp.me/p7uERY-9V">ASP.NET Core 2.1 Authentication with social logins</a></li>
+<li><a href="https://wp.me/p7uERY-aR">ASP.NET Core 2.0 Authentication with social logins - Implementing a profile store</a></li>
+<li><strong><a href="https://wp.me/p7uERY-ib">ASP.NET Core 2.0 Authentication with Azure Active Directory</a></strong></li>
+<li><a href="https://wp.me/p7uERY-aT">ASP.NET Core 2.0 Authentication with Azure Active Directory B2C</a></li>
+<li>ASP.NET Core 2.0 Authentication, IdentityServer4 and Angular</li>
+</ol>

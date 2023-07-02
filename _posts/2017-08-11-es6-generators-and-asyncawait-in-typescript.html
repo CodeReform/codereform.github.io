@@ -1,0 +1,152 @@
+---
+layout: post
+title: ES6 generators and async/await in Typescript
+date: 2017-08-11 20:12:36.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- JavaScript
+tags:
+- ES6
+- ES6 generators
+- Typescript
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  draftfeedback_requests: a:1:{s:13:"598d9d94245ad";a:3:{s:3:"key";s:13:"598d9d94245ad";s:4:"time";s:10:"1502453140";s:7:"user_id";s:8:"75937724";}}
+  _publicize_job_id: '8173071962'
+  _publicize_done_external: a:2:{s:8:"facebook";a:1:{i:17994663;s:37:"https://facebook.com/1786743018005955";}s:7:"twitter";a:1:{i:18002326;s:58:"https://twitter.com/giorgosdyrra/status/896102112257429504";}}
+  _publicize_done_18230083: '1'
+  _wpas_done_17994663: '1'
+  publicize_google_plus_url: https://plus.google.com/113829822246429249393/posts/QVo7v1mHDHc
+  _publicize_done_18230107: '1'
+  _wpas_done_17995347: '1'
+  _publicize_done_18237161: '1'
+  _wpas_done_18002326: '1'
+  publicize_twitter_user: giorgosdyrra
+  _wpas_skip_17994663: '1'
+  _wpas_skip_17995347: '1'
+  _wpas_skip_18002326: '1'
+  _thumbnail_id: '575'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2017/08/11/es6-generators-and-asyncawait-in-typescript/"
+---
+<p>Some exciting features Javascript has developed during the latest versions (ES6, ES2016) are without doubt the generator functions and the async/await support.</p>
+<p>These features exist in Typescript for quite some time; the language supported async/await since 1.7 version. But what about them? What they really are and how they work?<br />
+In this post I am going to explore their world, their Typescript syntax and implementations.</p>
+<p><!--more--></p>
+<h1>What is a generator</h1>
+<p>A generator is a special type of function that during its execution it can be paused, yield results back the caller and resume later, at caller's convenience. And this can happen as long as the generator has something to return, some value to <em>yield</em> back.</p>
+<p>This is a very powerful feature, as you can control the flow, send messages back and forth; the generator sends the caller a message every time it yields and the caller passes a message for the generator, when it is restarting it. As we can see later, this kind of behavior is ideal for state machine like style of code, which in this case is the async/await style.</p>
+<h3>How it works</h3>
+<p>First, I will talk a little bit about ES6 and how it works there and then I will go to Typescript, but the syntax does not differ.</p>
+<p>So, in order to create a generator you use an asterisk after the function keyword and then you casually declare a function, just like this:</p>
+<p>{% gist 64d5f456f82d81828cf6f407ae4e7574 %}</p>
+<p>Congratulations, you have made a generator!</p>
+<p>Of course, there is more on this. In order for the generator to be useful, you need to use the <em>yield expression</em>, to <em>delegate</em> result and control to the caller object.<br />
+Note that when you call a generator, you casually call a function, but it's body will <strong>not</strong> execute, not until you request the generator iterator to <em>iterate to next item</em>.</p>
+<p><strong>Say what???</strong></p>
+<p>I may have gone a bit ahead of myself here. Let me explain.</p>
+<h4>Yield expression</h4>
+<p>With this expression you can send value back to the caller. You use the <code>yield</code> keyword. This creates a lazy iterator. The following is a very simple generator</p>
+<p>{% gist 5de42ea11dba364abdabc5d8ca0b7f2f  %}</p>
+<p>The yield expression is the code on <strong>line 2</strong>, the <code>yield "Yo!"</code>. You can yield whatever you want, you might want to yield a number, an object, callback or a promise, it is up to you. Generator's job is to return this to the caller once it reaches to that point in the function body.</p>
+<h4>Generator iterator</h4>
+<p>Function <code>myGenerator</code> is pretty useless if I don't execute it. Calling this method, I will create a <strong>generator iterator</strong>. Under the hood, generators support <a href="https://en.wikipedia.org/wiki/Iterator_pattern" target="_blank" rel="noopener">iterators</a> in order to move to the next value. So, the following example, will create that generator iterator object and will iterate that. If I did it right, I will see the <em>"Yo!"</em> value.</p>
+<p>{% gist 9204609a87ee249c98b8e095c09c826b %}</p>
+<p>Check the following <a href="http://plnkr.co/edit/Bud3MmetpT3XFOQJ5Oaf" target="_blank" rel="noopener">plunk</a> to interact with the code a bit.</p>
+<p>On <strong>line 5</strong>, I create the iterator. Nothing happens.<br />
+When I call the <code>.next()</code> method, generator will execute, reach the <code>yield</code>, which in turn sends an object to the caller. Generators yield objects with a value and a done property.</p>
+<ul>
+<li>value property: Contains whatever value you pass back with the yield expression</li>
+<li>done property: A boolean that indicates if iterator should finish execution or not.</li>
+</ul>
+<p>In the example above, you see, when I fist call <code>.next()</code>, I get <code>{ value: "Yo!", done: false }</code>, which, okay has the value, but why generator hasn't finished?<br />
+There is no other code to execute after the <code>yield</code> expression.<br />
+Yes there is not, but generator is not aware at the moment, you need to resume his execution in order to let him know that his job is done.<br />
+When it reaches beyond the last yield, it returns an <code>undefined</code> value and the <code>done</code> property is true.</p>
+<p>Check the next example and notice three things that happen during the runtime:</p>
+<p>{% gist 5ddf601e10dc3861d20c693f4f221120 %}</p>
+<p>See what I see?</p>
+<ol>
+<li>The function body does not execute not until I call <code>.next()</code></li>
+<li>The function pauses its loop that is running to return the result. In the meantime I can do whatever I want and call it whenever I want. Generator will patiently wait for me to delegate control back to it</li>
+<li>When I call the <code>.next()</code> method, only and only then the function resumes (the loop in this example)</li>
+</ol>
+<p>Of course, it exits when there is no yield expression to execute. Technically, I does not exit, the iterator is just finished iterating through.</p>
+<h4>Dancing back and forth</h4>
+<p>I mentioned earlier that generators allow you to do that dance, from the generator function to the caller and from the caller back to the function. You just need to pass a value to the <code>.next()</code> method and it will evaluate from the yield expression.</p>
+<p>In the next example, I create a generator that accepts a string input, yields it and when it resumes it <code>console.log</code>'s the concatenated values (the initial when generator iterator was created and the one that is passed from the <code>.next()</code> method)</p>
+<p>{% gist 9ff55dc2a05fa1ba70336eb83b603597 %}</p>
+<p>It's a bit weird. What is going on? Shouldn't I pass the value in the first time I call the <code>.next()</code> method?<br />
+Nope. When you call the <code>.next()</code> for first time it reaches till <code>yield</code>. There, it returns the <code>hello</code> variable. Only that. I hasn't yet returned a value to the <code>world</code> variable! The external system correctly sees the "Hello" value being returned in first iteration, this is yielded by the generator.</p>
+<p>In second iteration, I pass the "World" string. This is what is assigned to the <code>world</code> variable, by evaluating the <code>yield hello</code> expression! Code executes until the <code>console.log</code> statement, where I concatenate the <code>hello</code> and <code>world</code> variables. From that point on, the generator knows that this is the end and returns an undefined value, indicating the iteration is over.</p>
+<p>Check this one to understand when the yield expression is returning a value and when it is evaluated</p>
+<p>{% gist ce77a91fe95cc1281ece578ea3cecf9c %}</p>
+<p>The generator function receives a parameter.<br />
+On first iteration, the <code>yield value</code> executes, the one in the parenthesis and returns to the external system. No concatenation has happened yet.<br />
+In second iteration, I pass the string "George". The <code>(yield value)</code> expression returns that string in the function, which is then concatenated with the rest, resulting in the printed value.</p>
+<h3>Generators and promises</h3>
+<p>In this example I am going to demonstrate that two-way communication between the generator and the external system.<br />
+In the following code, I create a function which whenever is called, it returns a promise. That promise generates a random number between 0 and 20 each time and it resolves if it is greater than ten. If less or equal to ten it rejects the promise.</p>
+<p>Then I created a wrapper for the generator that I am going to write. That wrapper accepts a generator function as an argument, it creates a generator iterator and calls .next() to fetch generator's value, which happens to be a promise. I use the<code> .then()</code> and <code>.catch()</code> methods to send a value or an error object back to the generator.</p>
+<p>Finally, I create the generator function itself, which yields the promise I made earlier. If it is resolved, it takes its value and copies it to an element's <code>innerHTML</code>. If an error object is returned (from the wrapper when the promise is rejected), then the <code>catch</code> body will execute, printing the error's message.</p>
+<p>The <code>makeRandom()</code> method is just a helper. I also registered an event listener to a button to repeat the process.</p>
+<p>{% gist 301f35d0cdd369faf0e323badc03e137  %}</p>
+<p>And here is a <a href="http://plnkr.co/edit/wikw1gIMvgrWsB913UHS" target="_blank" rel="noopener">plunk</a> to play with the source code.</p>
+<p>As you can see, this one here, has a lot of similarities with async/await. Imagine, instead of <code>yield</code> was the <code>await</code> keyword. The code would look the same, wouldn't it? More on this in next sections.</p>
+<h3>Typescript. What does it generate?</h3>
+<p>From this:<br />
+{% gist b2d9fed90dcf94cf9aa274d59a481073 %}<br />
+It generates this:<br />
+{% gist 11b7127d39c67bce4a216a0b74afc92d  %}</p>
+<p>Nice, let's get a little bit ahead and compare this with the code that is generated for the <code>async/await</code></p>
+<p>From this:<br />
+{% gist 77ad1c78e488c1fd0f6587e7150ea99f %}<br />
+It generates this:<br />
+{% gist 7176c840cb0b4b958cbc780bf61a80ed %}</p>
+<p>Well, comparing the output, I can see similarities. Both produce a generator. So, we actually see that <code>async/await</code> is based on generators for its functionality. Let's explore the reason in the next section.</p>
+<h1>Async/Await</h1>
+<p>Let's take a step back and think for a moment. When you write an async function, with an awaiter, what is <em>your</em>expectation?</p>
+<p>You expect it to pause the execution when the execution reaches the <code>await</code> keyword in front of a method. The execution is back to the caller once the method that is awaited is finished.<br />
+You also expect in some cases to pass a value to the method you await.<br />
+Lastly, you might expect it to throw an error.</p>
+<p>Based on our analysis in this post, these three attributes are supported by generators. Thus, they are perfect for implementing the <code>async/await</code> feature.<br />
+Also, if you look back on the section <strong>Generators and promises</strong>, you will see that this code resembles an async/await pattern a lot. What I did there was to pause the execution and pass control (the promise) to the caller and the caller tried to resolve the promise, pushing a value back to the generator (from the <code>.then()</code> or <code>.catch()</code> methods).<br />
+The generator could also handle exceptions (rejections on the promise) gracefully.</p>
+<h4>Syntax</h4>
+<p>You prefix the function with the <code>async</code> keyword and inside the function body you prefix with the <code>await</code> keyword the promise method you are about to call.<br />
+If you mark a function as async, it always returns a Promise. So, if you do not return something from the function body, your function is of type <code>Promise&lt;void&gt;</code>.</p>
+<p>{% gist d1d6342ac445e474f6b6d28899149ebf %}</p>
+<p>Let's look at some more examples. I am going to demonstrate usage of <code>async</code> functions that do not return a value (return a <code>Promise&lt;void&gt;</code>), functions that return some kind of value and functions that fail, because of <code>Promise</code> rejection.</p>
+<h4>Void functions</h4>
+<p>The following function is printing into the console each name in the array, it does not return anything though.</p>
+<p>{% gist f304a9596ce68c7c042d622bd62f8405 %}</p>
+<p>Another example. The following function is updating an HTML element with a greeting, if it is morning, it prints "Good morning", for afternoon it prints "Good afternoon" and for evening "Good evening" along with the current time and day. The <code>setTimeout</code> is there to simulate a delay.</p>
+<p>{% gist 3ff56dbd3bdb237f19fb7ffd0c4f6167 %}</p>
+<p>Notice in all the examples, I wrap the <code>Promise</code> in a function, which returns it.</p>
+<h4>Returning a value</h4>
+<p>Next example. In this one, I am going to return an object, so I need to resolve the promise that is returned by the <code>async</code> function.<br />
+The object I am returning is of type <code>Person</code>, which I created, in <strong>line 1</strong>, just a simple object with a <code>string</code> and <code>number</code> properties. I return this from the <code>Promise</code>, passing the object into the <code>resolve</code> method. Again, <code>setTimeout</code> is simulating a delay. After I fetch the return value, I create some appropriate messages to show on the UI.</p>
+<p>{% gist 6461f156083df4f0b2d47f8d32f97846  %}</p>
+<p>Please note that I am using <code>.then()</code>/<code>.catch()</code> only because I am not in an <code>async</code> function, if I were, I could just await that <code>.fetchPerson()</code> method, like this</p>
+<p>{% gist 9672d0aeb283e9c30f156da78c12f960 %}</p>
+<h4>Rejecting the promise</h4>
+<p>In this last example, I am going to reject a <code>Promise</code> and show the error message on screen. When you are rejecting a <code>Promise</code>, the await will throw an error, so it's a good practice to wrap those <code>await</code> calls around a <code>try/catch</code> block. Also, the value that is passed into the <code>reject</code> function of the <code>Promise</code>, is going to be the error object in the <code>catch</code> block.</p>
+<p>{% gist 4458cd1cc69b5ecce07af28d525caa74  %}</p>
+<p>If you wish to fiddle around with those, I have a <a href="http://plnkr.co/edit/yN9tOCLPQ9p0LFlC61QB" target="_blank" rel="noopener">plunk</a> ready, give it a go, get familiar with the syntax.</p>
+<h1>Summary</h1>
+<p>Async/await is build on generators. Generators make us able to lazy execute code, enabling a two-way communication between an external system and the generator function itself.<br />
+Generators in Typescript have same syntax as in ES6, so async/await, but Typescript provides us with strongly typed methods, so we can use the API at its best.<br />
+A generator's body is not called, not until the <code>.next()</code> method from the generator iterator is called. This executes the yield expression inside the generator, until there is no <code>yield</code> to call, in this case terminating the iterator.<br />
+A generator sends a message/value to the caller and it can also receive input from the caller, through the <code>.next()</code> method, which is evaluated as a return value from the yield expression.</p>
+<p>Async/await is available in Typescript from 1.7 version and onward, but only on ES6 targets. From 2.1 though it is available on ES3 and ES5 targets as well.<br />
+In order to use async/await, prefix your function with the keyword <code>async</code> first and you can call a promise inside its body, by prefixing it with the <code>await</code> keyword.<br />
+An <code>async</code> function always returns a Promise.<br />
+Make sure you wrap the Promise object around a function.</p>

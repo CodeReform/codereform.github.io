@@ -1,0 +1,200 @@
+---
+layout: post
+title: ASP.NET Core 2.0 Cookie Authentication - Local logins
+date: 2018-03-07 22:53:33.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET Core"
+- C#
+tags:
+- ASP.NET Core 2.0
+- Authentication
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _thumbnail_id: '622'
+  draftfeedback_requests: a:2:{s:13:"5a8854b9cb0a7";a:3:{s:3:"key";s:13:"5a8854b9cb0a7";s:4:"time";s:10:"1518884025";s:7:"user_id";s:8:"75937724";}s:13:"5a919dc2afc18";a:4:{s:3:"key";s:13:"5a919dc2afc18";s:4:"time";s:10:"1519492546";s:7:"user_id";s:8:"75937724";s:7:"revoked";s:1:"1";}}
+  timeline_notification: '1520463214'
+  _publicize_job_id: '15493017569'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/03/07/asp-net-core-2-0-cookie-authentication-local-logins/"
+---
+<p>ASP.NET Core 2.0 makes it very easy and straightforward to setup a cookie authentication mechanism in your application. Framework provides numerous ways to achieve that, with or without <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity?tabs=visual-studio%2Caspnetcore2x">ASP.NET Core Identity</a> membership system.</p>
+<p>This post is part of a series on ASP.NET Core 2.0 Authentication and I am about to talk Cookie Authentication without ASP.NET Core Identity. I will show how to setup, login and logout using local logins, a custom implementation of a membership system. In the coming examples I will show how to simply secure your ASP.NET Core 2.0 MVC application using cookies and in-memory stored users, though they could be stored anywhere, database, flat files, etc.<br />
+In coming blog posts I am going to show a more appropriate way to do the local login authentication, using a database, signing-up users, transforming their claims, etc., but first let's see something quick and simple.<br />
+<!--more--></p>
+<h2>Application &amp; Cookie authentication</h2>
+<p>A very common security authentication technique would be the cookies authentication without doubt. It is used to secure web applications long enough to trust and use it in enterprise.</p>
+<p>ASP.NET Core 2.0 provides various ways of implementing cookie-based authentication in our applications, with or without ASP.NET Core Identity. Here, we are going to discuss on using cookie authentication as standalone authentication provider in an ASP.NET Core MVC application.</p>
+<p>What are we going to build here exactly and which are the resources that need to be secured?<br />
+Well, in this example, we have an MVC application, which has two pages. One is Home and the other is Profile. The latter is the protected resource, whereas Home can be accessed by anonymous users.<br />
+Profile page will enumerate throughout authenticated user's claims.<br />
+If a user is anonymous and tries to access this page, he/she will be challenged to enter their credentials in a login screen which they are going to be redirected to.<br />
+Of course, users can logout from the application and enter in anonymous state again.</p>
+<p>We'll need some sort of a user store. In this example, I am going to create an in-memory, pre-populated user store and a service to validate user's credentials.</p>
+<p>Code repository can be found on <a href="https://github.com/gdyrrahitis/bpost-aspnetcore-local-logins">Github</a>.</p>
+<p>Let's start with that, but before we start, make sure to create a new empty Web Application, targeting ASP.NET Core 2.0.<br />
+Then install the <code>Microsoft.AspNetCore.All</code> nuget package.</p>
+<h2>Local logins</h2>
+<p>Now that the environment is set, let's go ahead and create a User model and a service to validate user's credentials.</p>
+<p>Under the root of the application, I've added a folder called Models and there, I've created a new class named User.</p>
+<p>{% gist 9fcd6058394d0f6af878a55402712ddc  %}</p>
+<p>Pretty much standard here, our User has an integer as a unique identifier, a user name which is registered with and a password and also some personal details like his first, last name and date of birth. Let's continue with the service now,</p>
+<p>First, I create a new <code>IUserService</code> interface with only one method,<code>ValidateUserCredentialsAsync</code>, to validate user credentials.</p>
+<p>{% gist a34c06f83cf134c42d8981d5ad3f3d55  %}</p>
+<p>And here is the implementation</p>
+<p>{% gist e9607a341fca4b8c4d1e237ba1c08392  %}</p>
+<p>So, this service here is expecting a dictionary of string and user. Key is the user name of the user, whereas value is the User object itself. Pretty simple implementation for a simple example.</p>
+<p>Now, <code>ValidateUserCredentialsAsync</code> job is to validate if that user is validated based on the username and password input.<br />
+<strong>Note that this is not a recommended way to validate users credentials, with plain string passwords moving around, this is just an example and it shouldn't be implemented in production no matter what.</strong></p>
+<p>So, first we check if that user exists in our store, that is <code>_users.ContainsKey(username)</code> and if that user exists, then we compare the password input with User's password. If they match, <code>isValid</code> is true else it's false. Then I create a new <code>Tuple</code> and I assign it to the <code>result</code> variable, containing the <code>isValid</code> value and the user, if <code>isValid</code> is true, else a null value.<br />
+Lastly, I return a <code>Task</code>, which is required from the method's signature.</p>
+<p>Now that we have the models and services ready, it's time to configure the application, but first, let me go and create the in-memory store and register it on the DI along with the <code>IUserService</code>.</p>
+<p>Next step, is to open the <code>Startup</code> class and add the in-memory store, so I create a new dictionary of <code>string</code> and <code>User</code>, populating it with a new <code>User</code> and then registering it on the DI</p>
+<p>{% gist dacc8b4cede5a0c9dd9f59134eb55669  %}</p>
+<p>And the registration in <code>ConfigureServices</code> method</p>
+<p>{% gist 0e367f1a8d0e2b45a264f193699fe635 %}</p>
+<p>Done, let's move now on configuring MVC and cookies authentication.</p>
+<h2>Configuring ASP.NET Core 2.0 application to use cookie authentication</h2>
+<p>In order to add cookie authentication in the pipeline, first you need to register the authentication middleware in <code>ConfigureServices</code> method, using the <code>AddAuthentication</code> extension on services.</p>
+<p>{% gist 880efdbfb72f4aaaa6ef62dca1d5dd09  %}</p>
+<p>As you see, first I add the authentication middleware in services and then I use the <code>AddCookie</code> method to declare that I would like cookie authentication to be enabled.<br />
+This extension comes with the<code>Microsoft.AspNetCore.Authentication</code> nuget package.</p>
+<p>What do the options passed mean?<br />
+For <code>AddAuthentication</code>, I use the following options in order to configure the authentication scheme.</p>
+<ul>
+<li><code>DefaultAuthenticateScheme</code> is the default scheme to use when a user authenticates. So I set the default scheme to cookie authentication (<code>CookieAuthenticationDefaults.AuthenticationScheme</code> value is "cookie")</li>
+<li><code>DefaultSignInScheme</code> is the default scheme to use when a user signs in. In this case we use cookies to sign in a user.</li>
+<li>The <code>DefaultChallengeScheme</code> is the default challenge to pose to an unauthenticated user, a <code>401</code> response. In this case we use cookie authentication scheme, so when a <code>Challenge</code> is send back to a user, he/she will be redirected to the login path where the cookie configuration has been set up. Check out the <code>options.LoginPath</code> in <code>AddCookie</code></li>
+</ul>
+<p>For <code>AddCookie</code>, I have defined two options</p>
+<ul>
+<li><code>LoginPath</code> is the path where the user is redirected to on the cookie authentication challenge. Default value is <code>/Account/Login</code>. In this case I've set it up to <code>/auth/login</code></li>
+<li><code>LogoutPath</code> is set the same way, providing the path where the logout action lives in this application</li>
+</ul>
+<p>Of course, by setting all these up does not mean that I'm finished yet.<br />
+I also have to register the Mvc service into the services and then use those in the pipeline, something that is done in the <code>Configure</code> method.<br />
+So, in order for this authentication to work, I need to call the <code>UseAuthentication</code> method in <code>Configure</code>, before the <code>UseMvc</code> or <code>UseMvcWithDefaultRoute</code>.</p>
+<p><code>ConfigureServices</code> method</p>
+<p>{% gist 64e3cf76cd22ea488e46a12c86874a0c  %}</p>
+<p><code>Configure</code> method.</p>
+<p>{% gist bce03b8c98c9ae590b227bd1275525e8  %}</p>
+<p>Note that I call the <code>UseAuthentication</code> after the <code>UseStaticFiles</code>, because I am not interested into authenticating static files, but before the <code>UseMvc</code> method which registers Mvc into the pipeline.</p>
+<h2>Setting up the protected Profile page</h2>
+<p>Next, let's set up the secured resource. I am going to create a view model for this page, which is going to show the user's name and his associated claims.</p>
+<p>Create a new folder named Controllers and add a new subfolder called Home. Add a new controller called <code>HomeController</code>.</p>
+<p>I've added the <code>ProfileViewModel</code> class under the Home folder, next to <code>HomeController</code></p>
+<p>{% gist c171e52a46bae77ef5ad2c41cae7c5ad  %}</p>
+<p>And now add the <code>Index</code> and <code>Profile</code> actions in the controller.<br />
+Index is going to be allowed anonymous access, whereas <code>Profile</code> is going to be decorated with an <code>Authorize</code> attribute to prevent unauthorized access.</p>
+<p>{% gist 373be340a8528d8e0b07add4a71b24ee  %}</p>
+<p>In Profile, I pass the <code>ProfileViewModel</code> to the View, populating it with the username, which can be found in <code>HttpContext.User.Identity.Name</code> and his claims, which can be found at <code>HttpContext.User.Claims</code>. This code is executed only when a user is authenticated. Also note the <code>[Authorize]</code> attribute decorating the method. This is used to secure this action from anonymous users trying to access it.</p>
+<p><strong>Note</strong>: Skip the following step if you have scaffolded the application with the Mvc template.</p>
+<p>Go ahead and add the views now, create a new folder named Views and add two subfolders, Home and Shared.</p>
+<p><strong>Note</strong>: Copy the <code>_ViewImports.cshtml</code>, <code>_ViewStart.cshtml</code> and paste them under Views folder and for Shared folder, copy and paste the <code>_Layout.cshtml</code> found in the Github repository, <a href="https://github.com/gdyrrahitis/bpost-aspnetcore-local-logins/tree/master/Authentication.Local/Views">here</a>.</p>
+<p>Now, let's add the <code>Index.cshtml</code> under the Home folder.</p>
+<p>{% gist e2618cb33dc571af7e5c5aa9d414160a  %}</p>
+<p>Very simple implementation of the home page, if the user is authenticated, then a greeting will show on screen.</p>
+<p>Now create the <code>Profile.cshtml</code> as well.</p>
+<p>{% gist f9d774b0a323b2613b69bc6b1ab1be8f  %}</p>
+<p>In this page, I show the user's name and enumerate through his claims creating a new bootstrap panel for each of them.</p>
+<p>If you have been following along, running the application now, you will see the following screen</p>
+<p><a href="{{ site.baseurl }}/2018/02/screenshot_1.png"><img class="alignnone wp-image-632 size-full" src="{{ site.baseurl }}/assets/2018/03/screenshot_1.png" alt="" width="1564" height="356" /></a></p>
+<p>If I try to access the Profile page I will be redirected to the <code>/auth/login</code> path, but this does not exist yet, so that's exactly what we are going to build now.</p>
+<h2>User login</h2>
+<p>Now it's time to build the login page.<br />
+Go to Controllers folder and create a new sub-folder named Authorization. Create a new controller there, called <code>AuthController</code>. Let's give it a route path <code>"auth"</code> and create a new login action.</p>
+<p>{% gist 53ddf90cc505c270853b81445a39892b  %}</p>
+<p>The login action has a route path <code>"login"</code> and it receives a <code>returnUrl</code> as an optional parameter and for the View, it passes a <code>LoginViewModel</code> through.<br />
+Create a new <code>LoginViewModel</code> in the same folder with <code>AuthController</code>:</p>
+<p>{% gist 03deb707a22d781228a6d1a450e68436  %}</p>
+<p>Now it's time to create the Login action</p>
+<p>{% gist 2071ba7769aed976a460816d813961a8  %}</p>
+<p>In the code above, we are just rendering a view with a view model, populating the <code>ReturnUrl</code> property of that model, which is not going to be shown in the actual page, rather be a hidden field.<br />
+That's all good, but we also need a view in order to show the login form to the user. Go to Views and create a new folder named <code>Auth</code> and there, create a new View, named <code>Login.cshtml</code>, having the following source code.</p>
+<p>{% gist c81f241227c2fdb4db517a0b7c23af66  %}</p>
+<p>So, if the <code>ModelState</code> is invalid, we show all validation errors in a bootstrap alert.<br />
+Below is the form, which makes a <code>POST</code> request to the HTTP POST Login action. All we have is three inputs, one for the username, the other for the password and the last for the <code>ReturnUrl</code>, which is a hidden field. Note that the <code>asp-for</code> tag helper is binding the model's specific property to the view's input.</p>
+<p>Last piece in the jigsaw is to add the HTTP POST login action. It is going to receive a <code>LoginViewModel</code>, check its state and if it is valid, then it will go ahead and try to sign the user in.</p>
+<p>{% gist b5f96c33f28ccd84e45e5f73b1c0d1fb  %}</p>
+<p>First we check if the model is valid. If it is not, then we return the model back to the View to display the error messages.<br />
+Otherwise, we continue, by first validating the user, using the injected <code>IUserService</code>. If you haven't already, inject the <code>IUserService</code> in the <code>AuthController</code>'s constructor (see below). If the validation was not successful, then we add an error in the current <code>ModelState</code>, indicating that the submitted credentials are invalid.<br />
+Otherwise, we go ahead and login the user in. This is done in the <code>LoginAsync</code> method (see below). After it finishes signing, the user in, we finally check if the return URL is a valid (see below), relative URL and redirect there if that's the case, else we redirect the user back to the home page.</p>
+<p>{% gist 55144635f89de59bfb2028f031686318  %}</p>
+<p>{% gist 09a99219a1b0454983db0e9350ff2d7b %}</p>
+<p>{% gist 1e4273558c521d18c29c16890cc0086d  %}</p>
+<p>This method is responsible of signing a user in. First, we create the user's claims (in a real world scenario we would fetch the user's claims from a database). We create a <code>NameIdentifier</code> claim, which is used to declare a unique identifier for the user. Then we create claims like <code>Name</code>, which is the user's name, <code>GivenName</code>, which I provide the value of <code>FirstName</code>, <code>Surname</code> whereas I provide the <code>LastName</code> value and finally, <code>DateOfBirth</code> claim which is a <code>DateTime</code> claim with the date of birth value from the user.</p>
+<p>Next, I construct the user's identity, which contains all the user's claims and I declare the authentication scheme this identity is for, which is the cookie authentication scheme. This is there to match the authentication scheme we provided when registered the Cookie Authentication through services. Please note that we didn't need to do that, as if no value is provided, the default will be picked.</p>
+<p>After that, I create a new <code>ClaimsPrincipal</code>, passing the newly constructed <code>ClaimsIdentity</code>.<br />
+The magic happens in <code>HttpContext.SignInAsync</code> method, which is signing-in a user. This method creates an encrypted cookie and adds it to the current response. This method takes an <code>IPrincipal</code>, which is the <code>ClaimsPrincipal</code> I created earlier. That way, the encrypted cookie will contain all the user's claims. Under the covers, this method populates the <code>HttpContext.User</code> with the <code>ClaimsPrincipal</code> we signed in, marking its identity as authenticated.</p>
+<p>Also, some words on <code>HttpContext.SignInAsync</code> from the official documentation</p>
+<blockquote><p>Under the covers, the encryption used is ASP.NET Core's Data Protection system. If you are hosting the app on multiple machines, load balancing across apps or using a web farm, then you must configure data protection to use the same key ring and app identifier.</p></blockquote>
+<p>Okay, now let's try to login. I will open the home page and click on the <code>"Login"</code> link. This will bring me to the login page, whereas I will provide the user's credentials, which are <code>"George"</code> for username and <code>"1234"</code> for password (not a very secure password but anyways).</p>
+<p><a href="{{ site.baseurl }}/2018/02/screenshot_2.png"><img class="alignnone wp-image-646 size-full" src="{{ site.baseurl }}/assets/2018/03/screenshot_2.png" alt="Login screen" width="1557" height="605" /></a></p>
+<p>Clicking on submit redirects me back the home page, whereas I see a greeting message. That means I am logged in! Cool!</p>
+<p><a href="{{ site.baseurl }}/2018/02/screenshot_3.png"><img class="alignnone wp-image-649 size-full" src="{{ site.baseurl }}/assets/2018/03/screenshot_3.png" alt="Home page" width="700" height="242" /></a></p>
+<p>If I navigate to the Profile page, I will be able to access it now. I can see all of the user's claims, just like I set them up in code.</p>
+<p><a href="{{ site.baseurl }}/2018/02/screenshot_4.png"><img class="alignnone size-full wp-image-650" src="{{ site.baseurl }}/assets/2018/03/screenshot_4.png" alt="Profile page" width="700" height="411" /></a></p>
+<p>If you open Chrome's developer tools (F12) and go to Application tab and Cookies, you will see an <code>.AspNetCore.Cookies</code> entry with an encrypted value. This is our cookie.</p>
+<p><a href="{{ site.baseurl }}/2018/02/screenshot_5.png"><img class="alignnone size-full wp-image-652" src="{{ site.baseurl }}/assets/2018/03/screenshot_5.png" alt="Cookie" width="700" height="358" /></a></p>
+<p>That's all good, now I am able to sign-in as a user. But how do I logout? I need to build a logout mechanism to do so.</p>
+<h2>User logout</h2>
+<p>As you have noticed already, in the navigation bar, there is a link to Login page and when a user is authenticated it changes to Logout.</p>
+<p>{% gist ca8567464b66235f91d41358e13b0080  %}</p>
+<p>This logout link is pointing to the Auth controller's <code>Logout</code> action, which is exactly what we are going to build.<br />
+So, go to <code>AuthController</code> and create a new action called Logout, giving it a route path of <code>"logout"</code>.</p>
+<p>{% gist d235ce0ec5f1a4ee3d1986f4bd74c059  %}</p>
+<p>I've also added an optional string for a <code>returnUrl</code> which is going to be used only in the logout consent screen, if the user cancels logout.<br />
+Line 6 is checking for a configuration value. I've gone ahead and injected the ASP.NET Core's <code>IConfiguration</code> interface into the controller in order to have access to the <code>appsettings.json</code>. If the <code>ShowLogoutPrompt</code> value is true, then we go ahead and show the logout consent screen. Otherwise, I just go ahead and logout the user without asking for his consent, redirecting him back to the home page.<br />
+Let's take a look on the configuration and the injected value into the controller's constructor</p>
+<p>{% gist 5593583807db1cc5ca1a5f8a5e4d22f2  %}</p>
+<p>{% gist 005a64716fab89344c54d85fa3036a29  %}</p>
+<p>Now that we have the logout page ready, let's go ahead and create its view. Go to Auth subfolder of Views and create a new view with name<code>Logout.cshtml</code>.</p>
+<p>{% gist dbcffda6017d8abe632944cf4528dd14  %}</p>
+<p>So here we are asking for the user's consent, if he/she is really sure that wants to logout. If yes, then a POST request will be issued to the logout endpoint (more on this below) which destroys the current session cookie.<br />
+Otherwise, the cancel button redirects the user back to where he came from, by using the <code>returnUrl</code> path.</p>
+<p>HTTP POST Logout action is very straightforward, we just sign the user out and then we redirect back to home page.</p>
+<p>{% gist 7053958490ae547b750f11f5c79a8578  %}</p>
+<p>So, if the user is authenticated, then we go ahead and we sign him/she out by calling the <code>HttpContext.SignOutAsync</code> method. Please note that we need to pass the target authentication scheme, the one that we used to sign the user in and we configured the authentication provider. Then we redirect back to home page. Let's see that in action.</p>
+<p>{% gist 4b787cbf5511865592f6ab1fde5fafd7  %}</p>
+<p>We are still logged in as <code>"George"</code>. Now it's time to logout. Click on the Logout link and see getting redirected back to home. The Logout link has changed to Login and if you try to access the Profile page, you will be redirected to the login page to provide credentials.<br />
+If you open the Chrome's developer tools (F12) and go to Application tab and Cookies, you will not see the <code>.AspNetCore.Cookies</code> cookie any more.</p>
+<p><a href="{{ site.baseurl }}/2018/02/screenshot_6.png"><img class="alignnone size-full wp-image-653" src="{{ site.baseurl }}/assets/2018/03/screenshot_6.png" alt="" width="700" height="380" /></a></p>
+<h2>Bonus</h2>
+<p>Cookie can be configured in many ways and it has many configuration properties for you to fiddle around. You can set configuration like the cookie domain, the expiration timespan, observe events and many more. These configuration options can be set on the <code>AddCookie</code> method in <code>Startup</code>, whereas a <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.authentication.cookies.cookieauthenticationoptions?view=aspnetcore-2.0">CookieAuthenticationOptions</a> class is instantiated and passed in the method's delegate. Check that link for more information on how to configure the authentication cookie.</p>
+<p>But also there are some configuration properties that can exist on the ClaimsPrincipal level, when you create the user's principal. You can instantiate a new <code>AuthenticationProperties</code> class and pass some configuration there. This class is part of the<code>Microsoft.AspNetCore.Authentication</code> namespace.<br />
+Let's take a peak into its internals</p>
+<p>{% gist 17d003faa77b1f807e583692bde8769e  %}</p>
+<p>You can setup properties like a <code>RedirectUri</code>, which is an absolute URI where the application will redirect the user when authenticated. Or you can setup properties like <code>IsPersistent</code>, which makes a cookie persistent across browser sessions, meaning that you can close the browser and when reopen it, the cookie will still be there (unless it has expired). Other options are <code>IssuedUtc</code>, which is a <code>DateTimeOffset</code> to indicate the time the cookie was created, <code>ExpiresUtc</code> sets the absolute time when the cookie expires. You must set the <code>IsPersistent</code> to true in order for this to be honored. The <code>AllowRefresh</code> configures the authentication session refreshing.</p>
+<p>For example, if you wanted your cookie to be present when you reopen the browser you should set the <code>IsPersistent</code> to true.<br />
+If you want the cookie to expire on a specific time, set the <code>IsPersistent</code> to true and the <code>ExpiresUtc</code> to a <code>DateTimeOffset</code>. Then pass the <code>AuthenticationProperties</code> instance to the <code>HttpContext.SignInAsync</code> method.</p>
+<p>Let's see an example of setting an absolute cookie expiration</p>
+<p>{% gist 5d87b46845263c7480a57ac8419361c3  %}</p>
+<p>In this example, I reuse the <code>LoginAsync</code> code that was used before to sign a user in and I provide some additional authentication properties. What I want here is an absolute expiration of the cookie, the cookie expires after 10 seconds of its creation. Then I casually create the claims, the Identity and the Principal. Please note that in order for these authentication properties to be taken into account, I pass them into the <code>HttpContext.SignInAsync</code>.<br />
+Now, if you login, wait for 11 seconds and refresh your page, you will see that you are automatically logged out.</p>
+<h2>Summary</h2>
+<p>Code repository can be found on <a href="https://github.com/gdyrrahitis/bpost-aspnetcore-local-logins">Github</a>.</p>
+<p>In this post we saw how to secure an MVC application using cookies and local logins, implementing a custom membership backend. We saw that what you need is the <code>HttpContext.User</code> property to be populated with the appropriate Identity of the user signed-in and the role that <code>HttpContext.SignInAsync</code> method plays into that.</p>
+<p>We also saw how to sign-out users from a specific authentication scheme, using the <code>HttpContext.SignOutAsync</code> method.</p>
+<p>Additionally, we saw how to configure a cookie authentication mechanism and how to create the authentication ticket for the user.</p>
+<p>In the coming posts, I am going to show to manipulate user's claims,how to perform social logins, with various social providers like Facebook, Twitter, Github, etc. I am also going to show how to create an SPA and secure it, using OpenId Connect and OAuth 2.0.</p>
+<hr />
+<p>This post is part of the <em>ASP.NET Core 2.0 Authentication series</em>.</p>
+<ol>
+<li><a href="https://wp.me/p7uERY-85"><strong>ASP.NET Core 2.0 Cookie Authentication - Local logins</strong></a></li>
+<li><a href="https://wp.me/p7uERY-aP">ASP.NET Core 2.0 Authentication with local logins - Implementing claims transformation</a></li>
+<li><a href="https://wp.me/p7uERY-aX">ASP.NET Core 2.0 Authentication with local logins - Responding to backend changes</a></li>
+<li><a href="https://wp.me/p7uERY-aV">ASP.NET Core 2.0 Authentication with local logins - Implementing custom authorization policies</a></li>
+<li><a href="https://wp.me/p7uERY-9V">ASP.NET Core 2.1 Authentication with social logins</a></li>
+<li><a href="https://wp.me/p7uERY-aR">ASP.NET Core 2.0 Authentication with social logins - Implementing a profile store</a></li>
+<li><a href="https://wp.me/p7uERY-ib">ASP.NET Core 2.0 Authentication with Azure Active Directory</a></li>
+<li><a href="https://wp.me/p7uERY-aT">ASP.NET Core 2.0 Authentication with Azure Active Directory B2C</a></li>
+<li>ASP.NET Core 2.0 Authentication, IdentityServer4 and Angular</li>
+</ol>

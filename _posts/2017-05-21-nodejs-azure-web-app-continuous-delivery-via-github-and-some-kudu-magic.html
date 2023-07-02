@@ -1,0 +1,186 @@
+---
+layout: post
+title: NodeJs Azure Web App continuous delivery via Github and some Kudu magic
+date: 2017-05-21 22:06:41.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- Azure
+tags:
+- Angular
+- Typescript
+meta:
+  geo_public: '0'
+  _edit_last: '75937724'
+  _oembed_706e09649bab3ff7b1bbd51f5811996f: "{{unknown}}"
+  _publicize_job_id: '5292774093'
+  _wp_old_slug: nodejs-azure-web-app-continuous-delivery-via-github-and-kudu-configuration
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2017/05/21/nodejs-azure-web-app-continuous-delivery-via-github-and-some-kudu-magic/"
+---
+<p>This post is about how toconfigure the continuous deploymentsettings for your NodeJs application in a Web App using Kudu.</p>
+<p>You will learn how to configure your Azure Web App to automate deployments from Github and how to properly configure your environment via Kudu, tosuccessfully run your application.</p>
+<p><!--more--></p>
+<p>Before proceeding, these are the links to the repository and the deployed application.<br />
+The application repository that I am going to deploy to the Azure Web App:<br />
+<a href="https://github.com/gdyrrahitis/angular-101">https://github.com/gdyrrahitis/angular-101</a></p>
+<p>The application deployed on Azure:<br />
+<a href="https://angular-101.azurewebsites.net/">https://angular-101.azurewebsites.net/</a></p>
+<h2>Little bit about the application</h2>
+<p>This is a simple NodeJs server, that hosts an Angular client application. The Angular client containsmany code samples on latest Angular's version, so if you are interested go take a look.</p>
+<p>Now, there are two configurations here, one is<strong>development</strong> and the other is<strong>production</strong>. As you know, while coding its more handy to have tools like browser sync, watchers, etc. toimprove productivity. But devconfigurationis usually entirely different from prod, whereasvarious things change. In Angular, we wish to enable prod mode when turn to production.</p>
+<p>Here is a small snippet from the<code>package.json</code> file</p>
+<pre class="prettyprint"><code>&quot;scripts&quot;: {
+    &quot;start:prod&quot;: &quot;npm run tsc &amp;&amp; SET NODE_ENV=production &amp;&amp; node server.js&quot;,
+    &quot;start&quot;: &quot;if-env NODE_ENV=production &amp;&amp; npm run start:prod || npm run start:dev&quot;,
+    &quot;start:dev&quot;: &quot;concurrently \&quot;npm run tsc:w\&quot; \&quot;npm run lite\&quot; &quot;,
+    &quot;tsc&quot;: &quot;tsc&quot;,
+    &quot;tsc:w&quot;: &quot;tsc -w&quot;,
+    &quot;lite&quot;: &quot;lite-server&quot;
+  },</code></pre>
+<p>I went ahead and omitted some of the code for the sake of brevity.<br />
+So, as I mentioned before, there are two different configurations here. The one for production is the<code>start:prod</code> and the one for development is<code>start:dev</code>.</p>
+<p>For development server I use the<code>lite-server</code> , by <a href="https://github.com/johnpapa/lite-server" target="_blank" rel="noopener noreferrer">John Papa</a>, which is ideal for a simple development process as this project needed. It provides a NodeJs server with BrowserSync support by default and it has minimal to none configuration.</p>
+<p>For production, I created a simple express server, code can be found at<code>server.ts</code> file.</p>
+<p>In order to load the server and enable prod mode for Angular, I need to set the<code>NODE_ENV</code> environment variable. This is a NodeJs environment variable which is used to distinguish/flag which configuration the project is currently building.<br />
+The<code>start</code> command loads that configuration conditionally by using the<code>if-env</code> <a href="https://www.npmjs.com/package/if-env">npm module</a>. If<code>NODE_ENV</code> value is production, it runs the<code>start:prod</code> command, else it runs the<code>start:dev</code> command.</p>
+<ul>
+<li><code>start:dev</code> - It compiles the typescript files, watches them for file changes and also runs the lite web server</li>
+<li><code>start:prod</code> - It compiles the typescript files once, sets the<code>NODE_ENV</code> variable to production (this syntax here is only for Windows) and then runs the express server</li>
+</ul>
+<h3>Quick word on the client code</h3>
+<p>So, in order to run Angular in prod mode I need to know the value of<code>NODE_ENV</code> variable. But I cannot! This is a NodeJs variable and it is not availableon browser! So, whatshould I do?<br />
+Well, my workaround was to create a<code>.json</code> filewhich I will modify when application is build on production.</p>
+<p>So, I created a<code>env-config.json</code> file with one object:</p>
+<pre class="prettyprint"><code>{
+    &quot;node_env&quot;: &quot;&quot;
+}</code></pre>
+<p>And in Angular's main I have the following code:</p>
+<pre class="prettyprint"><code>import { enableProdMode } from &quot;@angular/core&quot;;
+import { platformBrowserDynamic } from &quot;@angular/platform-browser-dynamic&quot;;
+import { AppModule } from &quot;./app.module&quot;;
+
+let config: { node_env: string } = require(&quot;../../env-config.json&quot;);
+if (config.node_env.trim() === &quot;production&quot;) {
+    enableProdMode();
+}
+
+platformBrowserDynamic().bootstrapModule(AppModule).catch((error) =&gt; { console.error(error); });</code></pre>
+<p>Pretty much self-explanatory, Ifetch the JSON file from the root of the project and I examine the value of<code>config.node_env</code> property. If production, I enable the prod mode.<br />
+Quick and simple solution. If you wish to know more on how to properly load JSON filesas modules in your code, check out this <a href="https://georgedyrra.wordpress.com/2017/02/09/loading-json-files-with-systemjs-module-loader/" target="_blank" rel="noopener noreferrer">post</a>.</p>
+<h3>Quick word on express server</h3>
+<p>Last part on application code, before I proceed to deployment configuration and Kudu.<br />
+I setup an express server, again, very simple, what it does it to get express up and running, specify static content, catch all routes and redirect to index.html (usual stuff for a SPA) and lastly, specify the build configuration.</p>
+<pre class="prettyprint"><code>import * as express from &quot;express&quot;;
+import * as path from &quot;path&quot;;
+import http = require(&quot;http&quot;);
+import * as fs from &quot;fs&quot;;
+
+const port: number = process.env.PORT || 8080;
+const env: string = process.env.NODE_ENV || &quot;development&quot;;
+
+let app: express.Application = express();
+
+app.use(express.static(__dirname));
+app.use(express.static(&quot;src&quot;));
+app.use(express.static(&quot;node_modules&quot;));
+app.all(&quot;/*&quot;, (request, response, next) =&gt; {
+    response.sendFile(&quot;index.html&quot;, { root: __dirname });
+});
+
+let contents = fs.readFileSync(&quot;env-config.json&quot;, &quot;utf8&quot;);
+let config = JSON.parse(contents);
+config.node_env = env;
+let json = JSON.stringify(config);
+fs.writeFileSync(&quot;env-config.json&quot;, json, { encoding: &quot;utf8&quot; });
+
+http.createServer(&lt;any&gt;app).listen(port);</code></pre>
+<p><strong>Note:</strong> This is important! Take a look at the highlighted line.You can't just have your server listen on port 80. You need to grab the right port from <code>process.env.PORT</code>, else you might experience some weirdinternal server errors in your Web App, so be careful and always remember to fetch the port from <code>process.env.PORT</code> and set it manually yourself, using the<code>listen</code> method.</p>
+<h2>Configuring Azure Web App</h2>
+<p>Setting up an App Service and a Web App on Azure is out of this post context, I assume you know how to do this in first place.<br />
+So after you have your Web App set, go to 'Deployment options', set to Github provider (provide your credentials if needed) and to the branch that you wish to deploy. Follow similarstepsas onthe screens below:</p>
+<p>Choose 'Deployment options'</p>
+<p><img class="alignnone size-full wp-image-457" src="{{ site.baseurl }}/assets/2017/05/deployment_options1.png" alt="" width="229" height="467" /></p>
+<p>Then choose 'Github' as your provider</p>
+<p><img class="alignnone size-full wp-image-458" src="{{ site.baseurl }}/assets/2017/05/source1.png" alt="" width="635" height="402" /></p>
+<p>Finally, setup your credentials, the repository and the branch you wish to deploy from</p>
+<p>&nbsp;</p>
+<p><img class="alignnone size-full wp-image-455" src="{{ site.baseurl }}/assets/2017/05/setup_github.png" alt="" width="320" height="444" /></p>
+<p>Click OK and done!</p>
+<p>You are all set,after a push to your repository, Azure will pick it up and deploy to the Web App.</p>
+<h2>Hosting application with some Kudu Voodoo</h2>
+<p>Now comes the fun part.</p>
+<p>As you probably know, Azure websites use IISNode to host the node process inside IIS. They need a <code>server.js</code> or an<code>app.js</code> as an entry point of your NodeJs server, so follow these conventions. Also,the name IIS should ring some bells. Oh yeah, you are going to need a <code>web.config</code>for your IISfor your application to work correctly. We'll go through that in a second.<br />
+Lastly, you will wonder and its a fair statement, on how are you going to install all theapplication dependencies with<code>npm</code>? You can't run yourapplication without them, right? What about your typescript code? In this case it is not precompiled, soI need to compile on deployment. Jeez,this is getting out of hands, I'll give up.<br />
+Just kidding, you shouldn't give up, you are just 3-4 steps away from having your application on Azure.</p>
+<p>First of all, install the kuduscript tool globally.<code>npm install kuduscript -g</code></p>
+<p>This tool will handle the deployment script creation for you. You will need to make some minor modifications to it, maybe none, depending on your scenarios.<br />
+After installing Kuduscript,open a CMD window on your application's root and type the following command:</p>
+<p><code>kuduscript -y --node --sitePath.</code></p>
+<p>This will create a<code>.deployment</code> and a<code>deploy.cmd</code> files for you on that directory. (For<code>sitePath</code> option, I provided the current directory, which is the root)</p>
+<p>The<code>.deployment</code> file is simple:</p>
+<p><code>[config]</code><br />
+<code>command = deploy.cmd</code></p>
+<p>It's just invoking the <code>deploy.cmd</code> file.<br />
+Nice,my suggestion would be toreview the<code>deploy.cmd</code> file a bit, get more familiar with the process.<br />
+Now, I want not only to install the packages, but I want to compile my Typescript priordeployment. Open the file and navigate to line 100. I modified the code a bit there</p>
+<pre class="prettyprint"><code>:: 3. Install npm packages
+IF EXIST &quot;%DEPLOYMENT_TARGET%\package.json&quot; (
+  pushd &quot;%DEPLOYMENT_TARGET%&quot;
+  call :ExecuteCmd !NPM_CMD! install
+  call :ExecuteCmd !NPM_CMD! run tsc
+  IF !ERRORLEVEL! NEQ 0 goto error
+  popd
+)</code></pre>
+<p>Take a look at <strong>line 4</strong>. Initially, it was <code>install --production</code>, but I wanted the<code>devDependencies</code> also, in order to compile.<br />
+On <strong>line 5</strong>, I run the Typescript compiler. This is a custom script that I added there. You are free to add whatever you want, this is mostly the place where you will be toying around,installing dependencies, running tests or compiling, whatever.</p>
+<p>You are two steps away. You need to add the<code>web.config</code> file and the<code>.iisnode.yml</code> (yes, they are supporting yaml for IIS, isn't it great?).<br />
+The web.config is pretty standard and you won't need to bother about it, just paste the following code</p>
+<pre class="prettyprint"><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;  
+&lt;configuration&gt;  
+    &lt;system.webServer&gt;           
+      &lt;handlers&gt;  
+           &lt;add name=&quot;iisnode&quot; path=&quot;server.js&quot; verb=&quot;*&quot; modules=&quot;iisnode&quot;/&gt;  
+     &lt;/handlers&gt;  
+      &lt;rewrite&gt;  
+           &lt;rules&gt;  
+                &lt;rule name=&quot;LogFile&quot; patternSyntax=&quot;ECMAScript&quot; stopProcessing=&quot;true&quot;&gt;  
+                     &lt;match url=&quot;iisnode&quot;/&gt;  
+                &lt;/rule&gt;  
+                &lt;rule name=&quot;NodeInspector&quot; patternSyntax=&quot;ECMAScript&quot; stopProcessing=&quot;true&quot;&gt;                      
+                    &lt;match url=&quot;^server.js\/debug[\/]?&quot; /&gt;  
+                &lt;/rule&gt;  
+                &lt;rule name=&quot;StaticContent&quot;&gt;  
+                     &lt;action type=&quot;Rewrite&quot; url=&quot;src{{REQUEST_URI}}&quot;/&gt;  
+                &lt;/rule&gt;  
+                &lt;rule name=&quot;DynamicContent&quot;&gt;  
+                     &lt;conditions&gt;  
+                          &lt;add input=&quot;{{REQUEST_FILENAME}}&quot; matchType=&quot;IsFile&quot; negate=&quot;True&quot;/&gt;  
+                     &lt;/conditions&gt;  
+                     &lt;action type=&quot;Rewrite&quot; url=&quot;server.js&quot;/&gt;  
+                &lt;/rule&gt;  
+           &lt;/rules&gt;  
+      &lt;/rewrite&gt;  
+   &lt;/system.webServer&gt;  
+ &lt;/configuration&gt;</code></pre>
+<p>The only modificationneeded, was to set the static content folder to be<code>src</code> (this is the folder where my static files reside) as you can see from the highlighted line.</p>
+<p>Finally, my favorite part, the YAML file.<br />
+I just override the build environment, I didn't need all the other configuration, so this is the only code line in the file:</p>
+<pre class="prettyprint"><code>node_env: production</code></pre>
+<p>Remember, I want to run on production and instruct Angular to enable prod mode, soI needed to set thisNodeJs environment variable and the<code>.iisnode.yml</code> file helped me a lot with that.<br />
+Forfull list of configuration overrides, look <a href="https://github.com/tjanczuk/iisnode/blob/master/src/samples/configuration/iisnode.yml" target="_blank" rel="noopener noreferrer">here</a>.</p>
+<h2>Finally, Deploy</h2>
+<p>Everything seems to be ready, go ahead andpush.<br />
+If you navigate to your Azure portal, tothat specific Web App and to deployment options, you will see that it's currently deploying (if not finished already). After it finishes, open that web site.</p>
+<p><strong>Note:</strong> If you need to fiddle around with some defects on your web.config or want to check the log files, use the Kudu portal. Just add an .scm after your host name and before azurewebsites, like: http://myhostname.scm.azurewebsites.com<br />
+Navigate to Debug Console, investigate the site, the LogFiles, etc.</p>
+<h2>Summary</h2>
+<p>In this post I've shown howimportant is Kudu for your NodeJs application! Without it, you couldn'tsee your magic hosted on Azure!<br />
+What you need to take away is, setting up your deployment is not enough. Azure will not guess what is going on with your application, you need to explicitly instruct it that this is a NodeJs app and here are the various options you wish to set. Use Kudu to make your deployment easier and remember, that even if it is a NodeJs app, you still need a <code>web.config</code> for instructingIIS to host your app.</p>
+<p>Happy coding!</p>

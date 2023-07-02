@@ -1,0 +1,408 @@
+---
+layout: post
+title: AngularJS with Typescript and SystemJS
+date: 2016-09-06 21:00:44.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- Angular
+tags:
+- AngularJS
+- SystemJS
+- Typescript
+- Typings
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _publicize_job_id: '26555754671'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2016/09/06/angularjs-with-typescript-and-systemjs/"
+---
+<p>In this post we are going to talk about AngularJS, Typescript, SystemJS.<br />
+Also, we are going towork with typings definitions as well as SystemJS JSON plugin to load JSON configuration in front end code.<br />
+<!--more--></p>
+<h2>Walkthrough</h2>
+<p>This is the application'sstructure:</p>
+<pre class="prettyprint lang-text"><code>|-src
+|-----main.ts
+|-----routes.ts
+|-----app.config.json
+|-----department.controller
+|---------department.controller.html
+|---------department.controller.ts
+|-----home.controller
+|---------home.controller.ts
+|---------home.controller.html
+|-----department.service
+|---------department.service.ts
+|-----employee.modal.controller
+|---------employee.modal.controller.ts
+|---------employee.modal.controller.html
+|-typings
+|-----custom
+|---------appconfig
+|-------------index.d.ts
+|---------department
+|-------------index.d.ts
+|---------departmentControllerScope
+|-------------index.d.ts
+|---------employee
+|-------------index.d.ts
+|---------employeeModalControllerScope
+|-------------index.d.ts
+|---------homeControllerScope
+|-------------index.d.ts
+|---------localStorageService
+|-------------index.d.ts
+|---------routeParams
+|-------------index.d.ts
+|-index.html
+|-package.json
+|-systemjs-config.js
+|-tsconfig.json
+|-typings.json</code></pre>
+<p>We won't go through every little detail of this application,the link to the Github repository is <a href="https://github.com/gdyrrahitis/bpost-angularjs-typescript-systemjs">here </a>and at the end of this article if you want to jump in and take a closer look of the code.<br />
+We will go through the aspects ofdefining an AngularJS application with Typescript, defining our modules with SystemJS, as well as creating custom declarations to support custom structures, like the app.config.json or extend existing declarations.</p>
+<p>Now, let's go through the bits and bolts of the code.</p>
+<p><strong>package.json</strong></p>
+<p>As you can see, AngularJS 1.5.8 version is going to be used, with angular-route, angular-sanitize and ngstorage additional modules. The<a href="https://angular-ui.github.io/bootstrap/">ui-bootstrap</a>is used as well, which has dependencies on angular-animate and angular-touch modules.<br />
+SystemJSis the module loader and the systemjs-plugin-json is a SystemJS plugin to load JSON, which can be found <a href="https://github.com/systemjs/plugin-json">here</a>.<br />
+We add bootstrap as well only for aesthetic purposes.</p>
+<p>For devDependencies, lite-server webserver is used to serve content, as well as typescript and typings node modules. Typings module is a Typescript definition manager, which can install and manage Typescript definitions,so Intellisense can be possible in Typescript code.</p>
+<pre class="prettyprint"><code>&quot;scripts&quot;: {
+     &quot;start&quot;: &quot;concurrently \&quot;npm run tsc\&quot; \&quot;npm run lite\&quot;&quot;,
+     &quot;postinstall&quot;: &quot;typings install&quot;,
+     &quot;lite&quot;: &quot;lite-server&quot;,
+     &quot;tsc&quot;: &quot;tsc -w&quot;,
+     &quot;test&quot;: &quot;echo \&quot;Error: no test specified\&quot; &amp;&amp; exit 1&quot;
+ },
+ &quot;dependencies&quot;: {
+    &quot;angular&quot;: &quot;^1.5.8&quot;,
+    &quot;angular-route&quot;: &quot;^1.5.8&quot;,
+    &quot;angular-sanitize&quot;: &quot;^1.5.8&quot;,
+    &quot;ngstorage&quot;: &quot;^0.3.11&quot;,
+    &quot;systemjs&quot;: &quot;^0.19.37&quot;,
+    &quot;systemjs-plugin-json&quot;: &quot;^0.1.0&quot;,
+    &quot;angular-animate&quot;: &quot;^1.5.8&quot;,
+    &quot;angular-touch&quot;: &quot;^1.5.8&quot;,
+    &quot;angular-ui-bootstrap&quot;: &quot;^2.1.3&quot;
+ },
+ &quot;devDependencies&quot;: {
+    &quot;concurrently&quot;: &quot;^2.2.0&quot;,
+    &quot;typescript&quot;: &quot;^1.8.10&quot;,
+    &quot;lite-server&quot;: &quot;^2.2.2&quot;,
+    &quot;typings&quot;: &quot;^1.3.3&quot;
+ },</code></pre>
+<p>&nbsp;</p>
+<p><strong>typings.json</strong></p>
+<p>This file contains all the global dependencies to Typescript definitions for AngularJS, angular-ui-bootstrap, node, jQuery as well as custom definitions, which we are about to build in a few minutes.</p>
+<p>So, we need Typescript definitions for our code, in order to have Intellisense.<br />
+To add Typescript definitions for frameworks/libraries you use the typings.json file, which is a configuration file, and then acommand prompt window to install these definitions.<br />
+Below are some examples of adding definitions for angular, angular-ui-bootstrap, jquery and node.</p>
+<p><code>typings install --global --save dt~angular</code></p>
+<p><code>typings install --global --save dt~angular-ui-bootstrap</code></p>
+<p><code>typings install --global --save dt~jquery</code></p>
+<p><code>typings install --global --save dt~node</code></p>
+<p>These commandswill install AngularJS, angular-ui-bootstrap, jQuery and node typings and will save them to typings.json.<br />
+Wewill revisitthe typings definitions later, when we will addour custom ones for the app.config.json.<br />
+These commands from above will create a typings directory in application root,which will contain *.d.ts files.</p>
+<p>The--global flag is used to makethe definition global to the application. It will be referenced in the index.d.ts under typings directory. This will be used from all the Typescript files automatically.<br />
+The --save flag is used to save the definition to our typings.json file.<br />
+You probably have noticed that in front of the framework/library name we put something like "dt~". This is the source option selection. The dt brings the <a href="https://github.com/DefinitelyTyped/DefinitelyTyped">DefinitelyTyped</a>typings.<br />
+Typings uses the source to determine from which whereit shoulddownload the Typescript definitions.</p>
+<p>All the availabletypings sources (as from Typings Github page):</p>
+<ul>
+<li>npm - dependencies from NPM</li>
+<li>github - dependencies directly from GitHub (E.g. Duo, JSPM)</li>
+<li>bitbucket - dependencies directly from Bitbucket</li>
+<li>bower - dependencies from Bower</li>
+<li>common - "standard" libraries without a known "source"</li>
+<li>shared - shared library functionality</li>
+<li>lib - shared environment functionality (mirror of shared) (--global)</li>
+<li>env - environments (E.g. atom, electron) (--global)</li>
+<li>global - global (window.&lt;var&gt;) libraries (--global)</li>
+<li>dt - typings from DefinitelyTyped (usually --global)</li>
+</ul>
+<p>If you want to find a definition but you are not sure about its metadata, you can search for it in the registry.</p>
+<p>You get all the /*angular*/ definitions, with detailed information by:<br />
+<code>typings search angular</code></p>
+<p>Or by name:</p>
+<p><code>typings search --name angular</code></p>
+<p>You can find moreinfo at the typings <a href="https://github.com/typings/typings">website</a>.</p>
+<p><strong>tsconfig.json</strong></p>
+<p>Next, we should look at tsconfig.json. For this application, I havedefined all theTypescript files to be included in the compilation process in the files array property, being explicit about them.</p>
+<pre class="prettyprint"><code>{
+    &quot;compilerOptions&quot;: {
+        &quot;module&quot;: &quot;commonjs&quot;,
+        &quot;moduleResolution&quot;: &quot;node&quot;,
+        &quot;noImplicitAny&quot;: false,
+        &quot;sourceMap&quot;: true,
+        &quot;target&quot;: &quot;es6&quot;
+    },
+    &quot;files&quot;: [
+        &quot;typings/index.d.ts&quot;,
+        &quot;src/routes.ts&quot;,
+        &quot;src/main.ts&quot;,
+        &quot;src/department.service/department.service.ts&quot;,
+        &quot;src/department.controller/department.controller.ts&quot;,
+        &quot;src/home.controller/home.controller.ts&quot;
+    ],
+    &quot;exclude&quot;: [
+        &quot;node_modules&quot;,
+        &quot;typings&quot;
+    ]
+}</code></pre>
+<p>The files instruction, specifies the files that will be included by the compiler.Any other file not included in files array will beexcluded from the compilation process. Iam explicit in defining all the visible files to Typescript compiler, because I want certain of them to be compiled. And notice, I include the typings/index.d.ts as well, because I want it to be visible,essentially omitting all the other typings definitions, as they are redundant. Typescript only needs to know about the index.d.ts and it will follow the<code>/// &lt;reference /&gt;</code> delarations when it is compiling.<br />
+The exclude array contains all the paths that should be excluded from typescript compiler.</p>
+<p><strong>systemjs-config.js</strong></p>
+<p>Next, let's visit thesystemjs configuration. We want to tell SystemJS where the essentialpackages for the applicationare,so it can load these in browser.</p>
+<p>It is required to specify anentry point, which will be the main.js script, as well as additional packages which are used throughout the application like angular, angular-sanitize, angular-route, ngstorage, ngAnimate, ngTouch, angular-ui-bootstrap and the systemjs-plugin-json plugin.</p>
+<p>The code of systemjs-config.js is the following:</p>
+<pre class="prettyprint"><code>(function () {
+    var map = {
+        &quot;app&quot;: &quot;src&quot;,
+        &quot;angular&quot;: &quot;node_modules/angular&quot;,
+        &quot;ngSanitize&quot;: &quot;node_modules/angular-sanitize/&quot;,
+        &quot;ngRoute&quot;: &quot;node_modules/angular-route/&quot;,
+        &quot;ngStorage&quot;: &quot;node_modules/ngstorage/&quot;,
+        &quot;ngAnimate&quot;: &quot;node_modules/angular-animate/&quot;,
+        &quot;ngTouch&quot;: &quot;node_modules/angular-touch/&quot;,
+        &quot;angular-ui-bootstrap&quot;: &quot;node_modules/angular-ui-bootstrap/&quot;,
+        &quot;json&quot;: &quot;node_modules/systemjs-plugin-json/&quot;
+    };
+
+    var packages = {
+        &quot;app&quot;: { main: &quot;main.js&quot;, defaultExtension: &quot;js&quot; },
+        &quot;angular&quot;: { main: &quot;index.js&quot;, defaultExtension: &quot;js&quot; },
+        &quot;ngSanitize&quot;: { main: &quot;index.js&quot;, defaultExtension: &quot;js&quot; },
+        &quot;ngRoute&quot;: { main: &quot;index.js&quot;, defaultExtension: &quot;js&quot; },
+        &quot;ngAnimate&quot;: { main: &quot;index.js&quot;, defaultExtension: &quot;js&quot; },
+        &quot;ngTouch&quot;: { main: &quot;index.js&quot;, defaultExtension: &quot;js&quot; },
+        &quot;angular-ui-bootstrap&quot;: { main: &quot;index.js&quot;, defaultExtension: &quot;js&quot; },
+        &quot;ngStorage&quot;: { main: &quot;ngStorage.js&quot;, defaultExtension: &quot;js&quot; },
+        &quot;json&quot;: { main: &quot;json.js&quot;, defaultExtension: &quot;js&quot; }
+    };
+
+    var config = {
+        map: map,
+        packages: packages
+    };
+    System.config(config);
+})();</code></pre>
+<p><strong>index.html</strong></p>
+<p>This a simple HTML file, usingTwitter Bootstrap for styling and the SystemJS library withconfiguration and initialization code to load all of thescript dependencies.</p>
+<p>The markup should be like this:</p>
+<pre class="prettyprint"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot; ng-app=&quot;app&quot;&gt;
+
+&lt;head&gt;
+ &lt;base href=&quot;/&quot; /&gt;
+ &lt;title&gt;AngularJS + Typescript + SystemJS&lt;/title&gt;
+ &lt;meta charset=&quot;UTF-8&quot;&gt;
+ &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+ &lt;link href=&quot;/node_modules/bootstrap/dist/css/bootstrap.css&quot; rel=&quot;stylesheet&quot;&gt;
+
+ &lt;!--Module loader--&gt;
+ &lt;script src=&quot;/node_modules/systemjs/dist/system.src.js&quot;&gt;&lt;/script&gt;
+ &lt;script src=&quot;/systemjs-config.js&quot;&gt;&lt;/script&gt;
+ &lt;script&gt;
+     System.import(&quot;json&quot;).then(function() {
+          return System.import(&quot;app&quot;).catch(function(err) {                 console.log(err); });
+     }).then(null, function(err){
+          console.error(&quot;Oh no, error!&quot;, err);
+     });
+ &lt;/script&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+     &lt;div class=&quot;container&quot;&gt;
+         &lt;ng-view&gt;&lt;/ng-view&gt;
+     &lt;/div&gt;
+&lt;/body&gt;
+
+&lt;/html&gt;</code></pre>
+<p>It is pretty straight-forward what is going on here.<br />
+For SystemJS initialization with the json plugin, thejson plugin is imported first, by calling <code>System.import("json")</code>. This will load the plugin and will return a promise. When the plugin is successfully loaded, then theapp module (the main entry point) can be loaded and essentially bootstrap the application.</p>
+<p><strong>app.config.json</strong></p>
+<p>This file is under the src/ directory. All theclient configuration settings are defined here. Applicationsettings are about the routes path, templateUrl, controller names, as well as modal configuration. By using this JSON file,the sourcecode becomes cleaner, configurable, avoiding magic strings/numbers/etc.</p>
+<p>The configuration file containsthe following code:</p>
+<pre class="prettyprint"><code>{
+    &quot;client&quot;: {
+        &quot;basePath&quot;: &quot;/&quot;,
+        &quot;html5Mode&quot;: true,
+        &quot;routes&quot;: [
+            {
+                &quot;path&quot;: &quot;/&quot;,
+                &quot;templateUrl&quot;: &quot;src/home.controller/home.controller.html&quot;,
+                &quot;controller&quot;: &quot;homeController&quot;
+            },
+            {
+                &quot;path&quot;: &quot;/department/:id&quot;,
+                &quot;templateUrl&quot;: &quot;src/department.controller/department.controller.html&quot;,
+                &quot;controller&quot;: &quot;departmentController&quot;
+            }
+        ],
+        &quot;departments&quot;: [
+            {
+                &quot;name&quot;: &quot;sales&quot;,
+                &quot;maxAllowedEmployees&quot;: 4
+            },
+            {
+                &quot;name&quot;: &quot;it&quot;,
+                &quot;maxAllowedEmployees&quot;: 10
+            }
+        ],
+        &quot;modal&quot;: {
+            &quot;animation&quot;: true,
+            &quot;size&quot;: &quot;lg&quot;,
+            &quot;templateUrl&quot;: &quot;src/employee.modal.controller/employee.modal.controller.html&quot;,
+            &quot;controller&quot;: &quot;employeeModalController&quot;,
+            &quot;controllerAs&quot;: &quot;$scope&quot;
+        }
+    }
+}</code></pre>
+<p>All these are great, but we want a way to make this structure available through Intellisense for our Typescript code.</p>
+<p>To achieve this, we needto create a *.d.ts file, declaring all this configuration.</p>
+<p>To do so, we go to typings directory and create a custom directory there. This will hold all customTypescript definitions.<br />
+Into custom directory, we makean appconfig directory and inside that an appconfig.d.ts file. Code of this file:</p>
+<pre class="prettyprint"><code>declare module AppConfig {
+    interface Route {
+        path: string;
+        templateUrl: string; 
+        controller: string;
+    }
+
+    interface Department {
+        name: string;
+        maxAllowedEmployees: number;
+    }
+    
+    interface Modal {
+        animation: boolean;
+        size: string;
+        ariaLabelledBy: string;
+        ariaDescribedBy: string;
+        templateUrl: string;
+        controller: string;
+        controllerAs: string;
+    }
+
+    interface Client {
+        basePath: string;
+        html5Mode: boolean,
+        routes: Route[];
+        departments: Department[],
+        modal: Modal
+    }
+
+    export interface Configuration {
+        client: Client;
+    }
+}</code></pre>
+<p>In the *.dt.s file, a module is declared,with all the configuration exported as an interface.</p>
+<p>Now, go back to command prompt and type the following:</p>
+<pre class="prettyprint lang-text"><code>typings install --global --save file:typings/custom/appconfig/appconfig.d.ts</code></pre>
+<p>This will add the appconfig.d.ts in the typings.json as well as a <code>/// &lt;reference /&gt;</code> in the index.d.ts, so it will be available globally throughout the application.</p>
+<p>The syntax toregister globally a custom definition, located in disk:</p>
+<pre class="prettyprint lang-text"><code>typings install --global--save file:path/to/the/.d.ts</code></pre>
+<p>Good, app.config.json and its typings are all set.<br />
+It's time to investigate theapplication module and then moveto routes.ts.</p>
+<p><strong>main.ts</strong></p>
+<p>In this file, anapplication module is instantiated, the one that isdeclared in the <code>ng-app</code> directive of the index.html file.</p>
+<pre class="prettyprint"><code>import * as angular from &quot;angular&quot;;
+import &quot;ngSanitize&quot;;
+import &quot;ngRoute&quot;;
+import &quot;ngStorage&quot;;
+import &quot;ngAnimate&quot;;
+import &quot;ngTouch&quot;;
+import &quot;angular-ui-bootstrap&quot;;
+import { HomeController } from &quot;./home.controller/home.controller&quot;;
+import { DepartmentController } from &quot;./department.controller/department.controller&quot;;
+import { DepartmentService } from &quot;./department.service/department.service&quot;;
+import { EmployeeModalController } from &quot;./employee.modal.controller/employee.modal.controller&quot;;
+import { registerRoutesFor } from &quot;./routes&quot;;
+
+export module app {
+    &quot;use strict&quot;;
+    var app = angular.module(&quot;app&quot;, [&quot;ngSanitize&quot;, &quot;ngRoute&quot;, &quot;ngStorage&quot;, &quot;ngAnimate&quot;, &quot;ngTouch&quot;, &quot;ui.bootstrap&quot;])
+                .controller(&quot;homeController&quot;, HomeController)
+                .controller(&quot;departmentController&quot;, DepartmentController)
+                .controller(&quot;employeeModalController&quot;, EmployeeModalController)
+                .factory(&quot;departmentService&quot;, [DepartmentService]);
+    
+    registerRoutesFor(app);
+
+    export var angularModule = app;
+}</code></pre>
+<p>Essentially, the "app" module is instantiated,registering all the additional modules, controllers and services to it. It is not necessary to export it, except you need it in other files. In this particular application it is not needed for anything else, as it served its purpose in the main.ts file.</p>
+<p><strong>routes.ts</strong></p>
+<p>In this file, a function is exported, which registers all the available routes for the application. Notice the use of the .json configuration file.</p>
+<pre class="prettyprint"><code>var config: AppConfig.Configuration = require(&quot;./app.config.json!&quot;);
+import &quot;angular&quot;;
+
+export function registerRoutesFor(app: angular.IModule) {
+    &quot;use strict&quot;;
+
+    app.config(($routeProvider: angular.route.IRouteProvider, $locationProvider: angular.ILocationProvider) =&gt; {
+        $locationProvider.html5Mode(config.client.html5Mode);
+
+        let home = config.client.routes.find(v =&gt; v.controller === &quot;homeController&quot;);
+        let department = config.client.routes.find(v =&gt; v.controller === &quot;departmentController&quot;);
+
+        $routeProvider
+            .when(home.path, {
+                templateUrl: home.templateUrl,
+                controller: home.controller
+            })
+            .when(department.path, {
+                templateUrl: department.templateUrl,
+                controller: department.controller
+            })
+            .otherwise({
+                redirectTo: config.client.basePath
+            });
+    });
+}</code></pre>
+<p>You should notice noany string literals exist, except the ones to find the correct route for each controller. Aside from that, everything is configurable through our app.config.json. Just to point out though, if we didn't use the <code>systemjs-plugin-json</code> the code above wouldn't be able to compile. This is because SystemJS cannot find the json file. It is not configured to do so, so it cannot be served.<br />
+Notice, to fetch the .json file we use var and the require method.We areloading a JSON file, not a module, so import shouldn't be used is this case. When var is used, require() is treated like a normal function.<br />
+You should be wondering, how require function is recognized by Typescript and it is not over ared squiggly line? It is because of the node typings we added first in the typings.json.<code>require</code>comes fromNodeJS, so we needed node Typescript definitions to have this without the compiler complaining.</p>
+<p>Also, notice that parameters, as well as variables are strongly typed, like angular app module, which is described by the <code>angular.IModule</code> interface,<code>$locationProvider</code> which is described by<code>angular.ILocationProvider</code> interface and lastly, <code>$routeProvider</code> which is described by<code>angular.route.IRouteProvider</code> interface.<br />
+These interfaces are available through DefinitelyTyped Typings. The two first, <code>angular.IModule</code> and <code>angular.ILocationProvider</code>come from the angular definitions, while the latter,<code>angular.route.IRouteProvider</code> comes from the angular-route typings definitions. These are installed through <code>typings install</code> command.<br />
+We prefer using definitely typed code., instead of<code>any</code>, as it makes the code more verbose for us developers. We don't need to know the API by heart, that's why we are using tools like VSCode, Visual Studio, etc, or Typescript, which assist in the development process.<br />
+Usage of <code>any</code>is recommended only if you do nothave the typings or you are quickly casting your object, in order to avoid compile-time errors.</p>
+<p>Let's now visit some of the controllers in application, to see how we can handle strongly typed parameters like angular <code>$scope</code>.<br />
+We need to identify in which definition each parameter exists. For example, <code>$scope</code> or <code>$location</code> service are included in angular definition. So we need to install angular typings.<br />
+Others, like<code>$uibModal</code> are defined in angular-ui-bootstrap typings, so we need to download this from the typings registry.</p>
+<p>Now, let's see the home controller. HomeController's job is to display all departments, which are fetched from a service, stored in an angular <code>$scope</code> property and displayed in the template. Each department has a unique integer Id, which is used to navigate to a new route /route/:id, through a method called <code>navigateToDepartment</code>.</p>
+<pre class="prettyprint"><code>import { DepartmentService } from &quot;../department.service/department.service&quot;;
+
+export class HomeController {
+    constructor(
+        private departmentService: DepartmentService,
+        private $scope: IHomeControllerScope,
+        private $location: ng.ILocationService) {
+        $scope.departments = departmentService.getDepartments();
+        $scope.navigateToDepartment = this.navigateToDepartment;
+    }
+
+    navigateToDepartment = (id: number) =&gt; {
+        this.$location.path(`/department/${id}`);
+    }
+}</code></pre>
+<p>As you can see in code above, I create a new class named HomeController. In its constructor, I define the service I want to inject, which is the DepartmentService imported few lines before. This service is registeredin the angular module, in main.ts.<br />
+I also inject the <code>$location</code> service and <code>$scope</code>. The $locationservicecan be strongly typed by the angular (alias is ng) ILocationService interface.<br />
+But we see something strange here. The $scopeis of type IHomeController, which is something not included in the angular typings definition. In fact, this is something custom I created, in order to define the <code>departments</code>property and the <code>navigateToDepartment</code> method. If I used the ng.IScope, I may had $scope strongly typed, but Typescript compiler would give me an error, because it can't recognize those two (departments and navigateToDepartment).<br />
+Likebefore, with the custom appconfig.d.ts, I create a Typescript declaration file. In typings/custom directory I create a folder named homeControllerScope, which includes an index.d.ts file. Codeis the following:</p>
+<pre class="prettyprint"><code>declare interface IHomeControllerScope extends ng.IScope {
+    departments: Department[];
+    navigateToDepartment: (id: number) =&gt; void;
+}</code></pre>
+<p>I just declare an interfaceIHomeControllerScope which <em>extends</em>the ng.IScope interface. So this one containsthe contract of IScope as well its custom API. And if you are wondering,what is this <code>Department</code> type, it is just another custom declaration file.<br />
+I definitely recommend, when creating controller classes, to define an interface as well for the $scope object of the controller, a custom one, containing all your properties, functions, etc.</p>
+<p>Take a look at the codein this <a href="https://github.com/gdyrrahitis/bpost-angularjs-typescript-systemjs">Github repository</a>. Clone the repository in your local machine, run the code and then have a tour. Check the typings.json configuration, as well as the controllers, how they are defined and used. Try to extend the application, by creating an edit controller for the users added in each department. Make your code strongly typed and if needed create your own declaration files.</p>

@@ -1,0 +1,91 @@
+---
+layout: post
+title: Learning React - Hello World
+date: 2018-04-29 12:41:59.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- JavaScript
+- React
+tags:
+- ES6
+- reactjs
+meta:
+  _edit_last: '75937724'
+  _thumbnail_id: '1013'
+  geo_public: '0'
+  _publicize_job_id: '17304803029'
+  timeline_notification: '1525005721'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/04/29/learning-react-hello-world/"
+---
+<p>Care to learn some React, build your own application and become from zero to hero in just some few steps? Well, you are in the right place, this blog post is all about learning how to setup your environment and get you up and running with React. In just 7 easy steps you will be able to run your hello world app, no sweat.</p>
+<h2><!--more-->Why I decided to blog about React</h2>
+<p>Reactjs... A trend in front-end development lately, and surely one, if not the most, popular framework among other competitors like Angular, Ember, Vue, etc. Personally, I think it deserves the love that it gets from the community, this library is the synonym of elegance. Code with Reactjs is super simple, easy to learn and work with.</p>
+<p>I was working with AngularJS, then Angular, for long time and I really liked that framework, but recently I thought about giving React a chance, just for laughs. I was amazed by the library! It is so easy to get a new application up and running with React, just configure your <a href="https://webpack.js.org/">Webpack</a>, render your component and you are set in simplified terms (of course for more complex applications you might need various other things, like redux state container). Also, the JSX syntax is awesome, I really loved the way that React forces you to think in components as small units of code, containing all your business as well as your UI syntax. I find it clean and very straightforward.</p>
+<h2>Few words on React for absolute beginners</h2>
+<p>React is a user interface library used to develop single-page applications but also mobile applications with a native look 'n feel. This library is developed by Facebook and become open source in 2013.</p>
+<p>This library promotes <a href="https://medium.com/@dan.shapiro1210/understanding-component-based-architecture-3ff48ec0c238">component-based architecture</a> for your application, with components separating concerns, containing business logic and markup (JSX). Be advised that JSX is optional, but it is preferred by most developers as it makes life easier as a visual. Also, each component can maintain its own state. This state can be rendered with the component's view. When the state is updated, related state that is rendered in the view is updated as well.</p>
+<p>Being itself a UI library, it is limited only in UI operations, making it extremely lightweight compared to other competitors, like Angular (though Angular is a fully-fledged framework compared to React which is just a library that solves a subset of the problems that Angular solves). For various other work, like routing or state management, you might need to include some other libraries, but again, React nature is simplicity and elegance, so having to work with other libraries, like Redux, is a breeze.</p>
+<h2>Hello world application</h2>
+<p>Code outlined in this article can be found on <a href="https://github.com/gdyrrahitis/bpost-learning-react-hello-world">GitHub</a>.</p>
+<p>Let's get moving, shall we? Setup a new empty working directory and open Visual Studio Code. With Code open, use the Terminal to setup the project.</p>
+<h3>Step 1</h3>
+<p>Setup <code>package.json</code>, by running the following <code>npm</code> command.</p>
+<pre class="prettyprint"><code>npm init -y</code></pre>
+<h3>Step 2</h3>
+<p>Now it is time to install the libraries required to build the application.<br />
+When building React applications, you need the <code>react</code> and <code>react-dom</code> libraries. I'm installing <a href="https://getbootstrap.com/">Bootstrap</a> just for making UI prettier.</p>
+<pre class="prettyprint"><code>npm i react react-dom bootstrap --save</code></pre>
+<p>Next up, I want my <code>devDependencies</code> installed. I am installing mostly webpack and related plugins/loaders to load CSS and ES6 code. I also need the <a href="https://github.com/babel/babel/tree/master/packages/babel-preset-react">babel-preset-react</a> package to add support for JSX features. Lastly, I am including the <code>react-hot-loader</code> loader to enable the hot module replacement feature of webpack.</p>
+<pre class="prettyprint"><code>npm i webpack-cli webpack webpack-dev-server html-webpack-plugin css-loader style-loader babel-loader babel-preset-react react-hot-loader --save-dev</code></pre>
+<p>Last thing is to update the <code>package.json</code> to include <code>webpack-dev-server</code> in <code>start</code> script, so just update the <code>"scripts"</code> section with the following.</p>
+<p>{% gist fff5f6e84d42e5bea3d43c381caea175 %}</p>
+<h3>Step 3</h3>
+<p>Create<code>.babelrc</code> now, to define the ES6 react preset.</p>
+<p>{% gist 5544ae81fd786dc5d218af6b3f9d3a09  %}</p>
+<h3>Step 4</h3>
+<p>Create a new <code>index.html</code> file. This is standard HTML5. The <code>&lt;div id="app"&gt;</code> element is going to be the root element for the application, I am going to fetch it later and use it in the <code>render</code> method.<br />
+All application code is bundled in the <code>bundle.js</code> file with the kind help of webpack. More on this coming next.</p>
+<p>{% gist 10d314a7d70e16127fb05433dae978fd  %}</p>
+<h3>Step 5</h3>
+<p>Now it is time to write your first React code! Create a new folder in root, named <code>src</code> and add a <code>main.js</code> file there. I am going to dissect the following, but first take a look on the code.</p>
+<p>{% gist 604aa01ff102371b08b3e430b8abd35f  %}</p>
+<ul>
+<li>In line 1, I import the bootstrap CSS file, nothing important, webpack takes care of loading CSS.</li>
+<li>In line 2-3, I import the core React libraries, which are the <code>react</code> and <code>react-dom</code>.</li>
+<li>Lines 7-14 are important! <code>ReactDom</code> exposes a <code>render</code> method. This method takes a JSX template and a container in which it will render the view defined in first parameter. As you might noticed, JSX is not HTML, it is rather a syntax extension to JavaScript, for example <code>class</code> attribute is not permitted in JSX, the equivalent in this syntax is <code>className</code>. I render the <code>message</code> string in the <code>h2</code> element and notice the interpolated variable goes in between single brackets (<code>{}</code>). Second parameter is a single HTML Node, the <code>div</code> element with the <code>app</code> Id, which was defined in <code>index.html</code>. That's going to contain all contents defined in first parameter of <code>render</code>. Be also advised that JSX should contain only one root element, else compiler throws an error.</li>
+<li>Finally, line 16 sets up the hot module replacement plugin.</li>
+</ul>
+<h3>Step 6</h3>
+<p>That's the last step that involves coding. In this step, I am going to setup my <a href="https://webpack.js.org/">webpack</a> configuration to bundle the code and be able to make it serve in the browser.</p>
+<p>{% gist dae6a6533705128754ab3af137bbeecb  %}</p>
+<p>Let's quickly dissect this.<br />
+The entry section defines the hot module replacement patch, so this is pretty standard to include. Make sure it is included first. Then, I include the <code>main.js</code> file that is found under src directory. This is the entry point of my application.<br />
+The output section defines the steps to create a bundle, with <code>path</code> defining the path where to copy the bundle(s). In this case the path is a directory named dist in root folder. It does not exist yet, but it is going to be created by webpack. Filename is <code>bundle.js</code>, the same as the one defined in <code>index.html</code>.<br />
+Module section contains the rules subsection, which defines which loaders should be used and where. I use the <code>style-loader</code> and <code>css-loader</code> for <code>.css</code> files and for <code>js</code> or <code>jsx</code> files, I use the <code>babel-loader</code> to support ES6 features.<br />
+In plugins, I have listed two, one is the <a href="https://github.com/jantimon/html-webpack-plugin">html-webpack-plugin</a>, which loads the <code>index.html</code> file with the bundle. The <a href="https://webpack.js.org/concepts/hot-module-replacement/">hot module replacement</a> plugin is then defined in order to enable the same.<br />
+Mode should be defined in Webpack 4, by default it is set to "production", I've just set this to development.<br />
+Finally, I define the options for <a href="https://github.com/webpack/webpack-dev-server">webpack-dev-server</a>, to enable HMR, plus other stuff like port.</p>
+<h3>Step 7</h3>
+<p>Everything seems to be set, what is left is to run the application. On terminal type the following</p>
+<pre class="prettyprint"><code>npm start</code></pre>
+<p>Application should be served by port <code>8082</code> now, open your browser to verify.</p>
+<p><a href="{{ site.baseurl }}/2018/04/screenshot_1.png"><img class="alignnone wp-image-1021 size-full" style="border:1px solid #000000;" src="{{ site.baseurl }}/assets/2018/04/screenshot_1.png" alt="" width="750" height="470" /></a></p>
+<h2>Summary</h2>
+<p>In this post you've learned some pretty basic things about React.<br />
+You've learned how to setup your working environment, setup webpack &amp; HMR and develop a hello world application in React in just 7 simple steps.</p>
+<p>If you liked this blog post and found it useful, please like, share &amp; subscribe for more! Also, if not yet a follower, follow me on <a href="https://twitter.com/giorgosdyrra">Twitter</a>!</p>
+<hr />
+<p style="text-align:left;">This post is part of the Learning React series</p>
+<ul>
+<li class="active"><a href="https://wp.me/p7uERY-bo"><strong>Learning React - Hello world</strong></a></li>
+<li><a href="https://wp.me/p7uERY-gA">Learning React - Component state</a></li>
+<li><a href="https://wp.me/p7uERY-gW">Learning React - Managing state with React Redux</a></li>
+</ul>

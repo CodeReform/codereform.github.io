@@ -1,0 +1,70 @@
+---
+layout: post
+title: Loading JSON files with SystemJS module loader
+date: 2017-02-09 01:34:13.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- JavaScript
+tags:
+- SystemJS
+meta:
+  geo_public: '0'
+  _edit_last: '75937724'
+  _publicize_job_id: '1654699492'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2017/02/09/loading-json-files-with-systemjs-module-loader/"
+---
+<p>I really hate this mess on JavaScript modules. We have AMD, CommonJS or UMD to support both. Then ES6 came into the game. But what about .json files on browser? There are different ways to load them and not all libraries support them! Your module loader should be sophisticated enough to handle this.</p>
+<p>In this post, I am going to talk about SystemJS and how it simply loadsfiles in the browser, other than .js files, like text or JSON, especially from third party modules, without driving you nuts!<br />
+<!--more--></p>
+<p>Let's assume you are using a third party library and this library needs to load some JSON files. And the code from the third party library is going to be loaded into the browser, not in Node.<br />
+As a reference, let's use <a href="https://github.com/michaelwittig/node-i18n-iso-countries">i18n-iso-countries</a>, which isone of my favorite libraries. In its source you will see something like this:</p>
+<pre class="prettyprint"><code>var codes = require(&quot;./codes.json&quot;);
+var data = {
+    &quot;ar&quot;: require(&quot;./langs/ar.json&quot;),
+    &quot;cs&quot;: require(&quot;./langs/cs.json&quot;),
+    &quot;de&quot;: require(&quot;./langs/de.json&quot;),
+    &quot;en&quot;: require(&quot;./langs/en.json&quot;),
+    &quot;es&quot;: require(&quot;./langs/es.json&quot;),
+    &quot;et&quot;: require(&quot;./langs/et.json&quot;),
+    &quot;fi&quot;: require(&quot;./langs/fi.json&quot;),
+    &quot;fr&quot;: require(&quot;./langs/fr.json&quot;),
+    &quot;hu&quot;: require(&quot;./langs/hu.json&quot;),
+    &quot;it&quot;: require(&quot;./langs/it.json&quot;),
+    &quot;nb&quot;: require(&quot;./langs/nb.json&quot;),
+    &quot;nl&quot;: require(&quot;./langs/nl.json&quot;),
+    &quot;nn&quot;: require(&quot;./langs/nn.json&quot;),
+    &quot;pl&quot;: require(&quot;./langs/pl.json&quot;),
+    &quot;pt&quot;: require(&quot;./langs/pt.json&quot;),
+    &quot;ru&quot;: require(&quot;./langs/ru.json&quot;),
+    &quot;sv&quot;: require(&quot;./langs/sv.json&quot;),
+    &quot;tr&quot;: require(&quot;./langs/tr.json&quot;),
+    &quot;zh&quot;: require(&quot;./langs/zh.json&quot;)
+};</code></pre>
+<p>Well, if you try and use this library in the browser, without a JSON plugin, you are going to lose. SystemJS module loader cannot find these files with that funny ".json" extension, you need to let it know about them. But how?</p>
+<p>The answer is plugins. This awesomemodule loadersupports several plugins and loaders. Look <a href="https://github.com/systemjs/systemjs/blob/master/docs/plugins.md">here</a>, at itsGithub repo. There is support for JSON, exactly what we are looking for!</p>
+<p>But how is this going to help us? Well, using this loader, SystemJS will be able to understand these <code>require</code> call. But this doesn't come for free. In SystemJS you need to postfix the call with a <code>!json</code> text.</p>
+<p>Something like this:</p>
+<pre class="prettyprint"><code>var codes = require(&quot;./codes.json!json&quot;);</code></pre>
+<p>But if you do that, you mess with the third partylibrary and you shouldn't. Yes that is true. That's why, SystemJS has this loader, to postfix the <code>require</code> call with that magic little text!</p>
+<p>Just add this loader into your <code>meta</code> configuration like so:</p>
+<pre class="prettyprint"><code>var config = {
+    map: map,
+    packages: packages,
+    meta: {
+        &quot;*.json&quot;: { &quot;loader&quot;: &quot;json&quot; }
+    }
+};</code></pre>
+<p>And that should work. Just that.</p>
+<p>And what about Webpack, or AMD? These fellas want the <code>!json</code> as prefix. Well, there is configuration for that as well, you can just enable it globally, setting the <code>pluginFirst</code> to true.</p>
+<pre class="prettyprint"><code>System.config({ pluginFirst: true });</code></pre>
+<p>Same applies for other types of files, like text or CSS, etc. Again, check the available loaders for SystemJS. You maywish to <a href="https://github.com/systemjs/systemjs/blob/master/docs/creating-plugins.md">add yours</a> to load some kind of file.<br />
+Also take a lookat <a href="https://github.com/systemjs/systemjs/blob/master/docs/getting-started.md#plugin-loaders">SystemJS docs on plugins loaders</a>in order to learn how to use the existing loaders.</p>
+<h3></h3>

@@ -1,0 +1,291 @@
+---
+layout: post
+title: C# 7 out variables, tuples &amp; other new features
+date: 2017-04-03 22:10:03.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- C#
+tags: []
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _publicize_job_id: '4214380818'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2017/04/03/c-7-out-variables-tuples-other-new-features/"
+---
+<p>C# 7 is available on new Visual Studio 2017 and comes with some new features. I wouldn't call them 'revolutionary' features, but they addon the language very well andsome of them can be very helpful. Personally, I have anticipated some features since C# 6 version.<br />
+<!--more--></p>
+<p>TLDR; Sample code can be found <a href="https://github.com/gdyrrahitis/csharp-7-new-features-samples">here</a>.</p>
+<p>C# 7 comes with new features that I really like and I strongly believe they will be very useful in daily coding life, while others I think won't help me anytime soon.<br />
+Look at <a href="https://github.com/dotnet/csharplang">C# Language Design on GitHub</a>or the <a href="https://github.com/dotnet/csharplang/tree/master/proposals">proposals</a> made from the community for the language, to get an idea of the new language features and the features to come.</p>
+<p>Before I begin, I wish to share my experience with VS 2017, C# 7, .NET Standard/Core.<br />
+I used Visual Studio 2017 Community version to experiment with new syntax (I don't have yet a license for Pro, sniff). I also wanted to experiment on codeby writing some unit tests (thisis my way to learn new stuff, I first write a unit test and then fiddle around with code, aiming to make it pass), so I used xUnit (which I am not a big fan of, but anyways). Both projects were .NET Standard 1.4 projects, but then I realized that this doesn't work, as you can see on my <a href="http://stackoverflow.com/questions/42915675/net-standard-1-5-xunit-console-runner-how-to-run-my-unit-tests">SO</a> post. So, the answer was to makethe test project a runnable application, I used .NET Core 1.1 but with no luck, so what I did in the end, was to create a new test project, targeting .NET Framework 4.6.2. Project with samples remained to .NET Standard.<br />
+Also, do not forget to use the System.Runtime Nuget package. Take a look onsamples at Github (link is available above).</p>
+<h3>Out variables</h3>
+<p>Man, I love this. It is the first topic to discuss becauseI anticipated this for a long time. Personally, I really, really hated the old way, where you needed to declare a variable before calling the method with the output parameter. Iwas feeling funny everytime I was forced tocode stuff like this:</p>
+<pre class="prettyprint"><code>int value;
+
+int.TryParse(&quot;5&quot;, out value);
+
+// Use value</code></pre>
+<p>I strongly believe that this is not elegant and I was really disappointed when they decided to not include this on C# 6 release.<br />
+But, here it is. Now you can declare the variable and the out parameteron the same line</p>
+<pre class="prettyprint"><code>int.TryParse(&quot;5&quot;, out int value);
+
+// Use value</code></pre>
+<p>Yeah, I know, this isn't exactly a revolution or an outstanding feature, but it ishelpful and increases readability (of course, you need to get your eyes used to this new syntax, as you might lose a variable declaration while reading). Please note also that you can declare it as a <code>var,</code>instead of a specific type.</p>
+<p>As it is expected, you can declare more than one output parameters (duh!) and use this new syntax. The cool thing with this though, is that you can decide which output parameter youwish and which you don't. Cool stuff!<br />
+Bear with me, I know, the following example is a bit dull, but it demonstrates the use of<strong><em>discards</em></strong> (which can be declared with an underscore)</p>
+<pre class="prettyprint"><code>// Usage with two output parameters, fetching the first
+CustomConverter.GetIntegerFromStringWithDiscards(out var x, out _);
+
+// Usage with more than two output parameters, fetching the first
+CustomConverter.GetIntegerFromStringWithDiscards(out var x, out _, out _);
+
+// Usage with three output parameters, fetching the second
+CustomConverter.GetIntegerFromStringWithDiscards(out _, out var y, out _);</code></pre>
+<p>As you can see, you omit the parameter you don't wish to return using out _. How cool is the third example? You discard the first and the last and you get the middle one. Nice!</p>
+<p>There is one gotcha though and this has to do with scoping. Thescope rule is strict,having the variables accessible only in the scope body they are declared in.<br />
+That said, the following code will not work,you will get a compiler error, stating that <em>the name '[name]' does not belong to current context</em>.</p>
+<pre class="prettyprint"><code>public static void GetIntegerFromStringWithDiscards(out int x, out int y)
+{
+    if (true) {
+        int.TryParse(&quot;5&quot;, out var a);
+        int.TryParse(&quot;6&quot;, out var b);
+    }
+
+    x = a;
+    y = b;
+}</code></pre>
+<p>but the following will work just fine</p>
+<pre class="prettyprint"><code>public static int GetIntTimesTenOrDefault(string number)
+{
+    if (int.TryParse(number, out int value)) {
+        return value * 10;
+    }
+
+    // Value variable is visible to this scope, not only inside the if scope
+    return value;
+}</code></pre>
+<h3>Tuples and deconstruction</h3>
+<p>The new syntax of tuples is awesome! I really like it and it kinda reminds me of JavaScript objects in some weird way, probably it's just me, of coursethe syntax is not the same, but it reminds me that whenever I want to fetch a tuple value with that syntax.</p>
+<blockquote><p>Please note, in order to use the new tuples, you need to download a Nuget package, as it is not yet on core language code. So, that said, download the <code>System.ValueTuple 4.3.0</code> (or higher)</p></blockquote>
+<p>Forget the old, rusty, rigid syntax for tuples, now you just declare them by type and you have them.<br />
+Look on the following example, the<code>GetPerson</code> method returns a Tuple with two strings and an integer.</p>
+<pre class="prettyprint"><code>public (string name, string surname, int age) GetPerson()
+{
+    return (&quot;George&quot;, &quot;Dyrrachitis&quot;, 28);
+}</code></pre>
+<p>The syntax is pretty much simple. For declaration, you wrap in parenthesis the tuple items with their types and optionally names for them,if you want to make the signature more readable.<br />
+In order to create a tuple instance, you wrapyour objects in parenthesis, of course matching the declaration, like in the example above, first define the two strings, then the integer value.</p>
+<p>You consume it in a similar fashion. Of course, you can consume a simple tuple object and access each itemindividually like this:</p>
+<pre class="prettyprint"><code>var result = person.GetPerson();
+// result.Item1
+// result.Item2
+// result.Item3</code></pre>
+<p>But this is not sexy, okay? What about this?</p>
+<pre class="prettyprint"><code>// Act
+(string firstName, string lastName, int age) = person.GetPerson();
+
+// Assert
+Assert.Equal(&quot;George&quot;, firstName);
+Assert.Equal(&quot;Dyrrachitis&quot;, lastName);
+Assert.Equal(28, age);</code></pre>
+<p>That's what I'm talking about! You can wrap your tuple elements in parenthesis, declare them and they are ready to be used like normal variables. Of course, you can declare them as <code>var</code> as well or even better, for shorthand syntax (see <em>deconstruction</em> below):</p>
+<pre class="prettyprint"><code>var (firstName, lastName, age) = person.GetPerson();</code></pre>
+<p>Declaring them all as vars.</p>
+<p>Also, like out variables, tuples have discards as well, so you can omitelements you don't wish to use, just like at the following example.</p>
+<pre class="prettyprint"><code>[Fact]
+public void GetOnlyFirstNameGeorgeFromTuple()
+{
+    // Arrange
+    var person = new Person();
+
+    // Act
+    (var firstName, _, _) = person.GetPerson();
+
+    // Assert
+    Assert.Equal(&quot;George&quot;, firstName);
+}
+
+[Fact]
+public void GetFirstNameAndAgeFromTuple()
+{
+    // Arrange
+    var person = new Person();
+
+    // Act
+    (var firstName, _, var age) = person.GetPerson();
+
+    // Assert
+    Assert.Equal(&quot;George&quot;, firstName);
+    Assert.Equal(28, age);
+}</code></pre>
+<p>Finally, on tuples, there is another interesting feature, called <em><strong>deconstruction</strong></em>. We looked at that feature on the previous examples, with the sexy syntax.<br />
+But you can use it on classes as well, making them to behave like a tuple. You just need to declare a method called<code>Deconstruct</code> in your class, which can receive a number of output parameters, which will be deconstructed.</p>
+<pre class="prettyprint"><code>public class Person
+{
+    public Person(string firstName, string lastName, int age)
+    {
+        FirstName = firstName;
+        LastName = lastName;
+        Age = age;
+    }
+
+    public string FirstName { get; }
+    public string LastName { get; }
+    public int Age { get; }
+
+    public void Deconstruct(out string firstName, out string lastName, out int age)
+    {
+        firstName = FirstName;
+        lastName = LastName;
+        age = Age;
+    }
+}</code></pre>
+<p>In the code above, I want to deconstruct a <code>Person</code> object to strings <code>firstName,</code> <code>lastName</code> and integer <code>age</code>. So, I use the <code>Deconstruct</code> method,declaring three output parameters, matching the description I gave earlier. I just give them the values from the public properties of the class, which were populated on instantiation.<br />
+Now, <code>Person</code> can be deconstructed like this:</p>
+<pre class="prettyprint"><code>[Fact]
+public void DeconstructPersonObjectWithDeconstructor()
+{
+    // Arrange
+    var person = new Person(&quot;George&quot;, &quot;Dyrrachitis&quot;, 28);
+
+    // Act
+    var (firstName, lastName, age) = person;
+
+    // Assert
+    Assert.Equal(&quot;George&quot;, firstName);
+    Assert.Equal(&quot;Dyrrachitis&quot;, lastName);
+    Assert.Equal(28, age);
+}</code></pre>
+<p>Groovy!</p>
+<h3>Pattern matching</h3>
+<p>Although pattern matching is a hot feature for the language, I won't spend much time discussing that.</p>
+<p>I would say that pattern matching is not that really useful to the language, it was a feature 'nice to have' mostly, by reading the <a href="https://github.com/dotnet/csharplang/blob/master/proposals/patterns.md">patterns.md proposal</a>, at least that is my take.<br />
+You can think of it as the <code>Is</code> operator in steroids. That operator is extended to test an expression against a pattern, and in this case we have various types of patterns.</p>
+<p>We can match an expression based on type or constant value or null and other discussed <a href="https://github.com/dotnet/csharplang/blob/master/proposals/patterns.md#patterns">here</a>.<br />
+This feature isveryuseful in some coding scenarios. Mostly, I like itbecause it gives me better syntaxin an is-a situation or in testing a nullable type. Seriously, I like it only for that.<br />
+Check on the following example (of course the following can shorten significantly by using a ternary operator, but for the sake of the example I am more explicit)</p>
+<pre class="prettyprint"><code>public class TypesWithIsOperator
+{
+    public bool IsCustomReferenceType(object obj)
+    {
+        if (obj is CustomReferenceType t)
+        {
+            return t.True;
+        }
+
+        return false;
+        // or for short: return obj is CustomReferenceType t ? t.True : false;
+    }
+
+    public bool IsNullableIntGreaterThanTen(int? value)
+    {
+        if (value is int v)
+        {
+            return v &gt; 10;
+        }
+
+        return false;
+        // or for short: return value is int v ? v &gt; 10 : false;
+    }
+}
+
+public class CustomReferenceType
+{
+    public bool True =&gt; true;
+}</code></pre>
+<p>In<code>Is</code><code>CustomReferenceType</code> method, I check if the object passed is of type<code>CustomReferenceType</code> and I create a new variable<code>t</code> of that type from the object (same as using the <code>as</code> operator and assigning the result to a new variable). Same goes for the<code>IsNullableIntGreaterThanTen</code> method, in which I check if the nullable integer value passed is not null, create a new variable<code>v</code>, assing the integer value there and return Boolean result based on its value.<br />
+In essence, I avoid doing this:</p>
+<pre class="prettyprint"><code>// With reference type
+var t = obj as CustomReferenceType;
+if(t != null) {
+    return t.True;
+}
+return false;
+
+// Or with value type
+if(value.HasValue) {
+    int v = value.Value;
+    return v &gt; 10;
+}
+return false;</code></pre>
+<p>Another coding scenario that pattern matching is useful and is demonstrated by almost everyone, is when using a switch-case statement. Now, you can match a case block by a pattern, which can be a type or a constant expression or null.<br />
+Be careful though,the patterns are not matched in an ordered fashion, as the compiler can match patterns out of order, as it is optimized to reuse the results of an already matched pattern in order to compute the result of matching of other patterns.<br />
+Also, note that the <code>default</code> case will execute last, regardless of the order you specify it on code.</p>
+<pre class="prettyprint"><code>public string MatchingMachineProduct(IMachine machine)
+{
+    switch (machine)
+    {
+        case PizzaMachine pizzaMachine:
+            return pizzaMachine.Make();
+        case FishAndChipsMachine fishAndChipsMachine:
+            return fishAndChipsMachine.Make();
+        default:
+            return null;
+        case null:
+            throw new ArgumentNullException(nameof(machine));
+    }
+}</code></pre>
+<h3>Other features</h3>
+<h4>Local functions</h4>
+<p>Other features that I like are the local functions. I think this is a good addition and improves readability.<br />
+When reading on code,as ahuman being, I read from top to bottom and jumping to references while reading, meaning I will jump to the next function declared. I prefer to write a private function immediately after its call,so a reader can jump to it directly, without much effort searching in the class.<br />
+With local functions, you literally have the chance to write it justafter your call in thecaller'sbody. All thecaller's scoped variables are available within the local function, which helps you to definemore readablesignatures, with less parameters (the more the parameters a method has, the dirtier it is).<br />
+Of course, this is one advantage that it gives you, the other is scoping,the only one that has access to this method is the caller and only that. This can help you create more meaningful inner functions, closer to thecaller's context.</p>
+<pre class="prettyprint"><code>public class Bubblesort
+{
+    private readonly int[] _array;
+
+    public Bubblesort(int[] array) =&gt;  _array = array;
+
+    public void Sort()
+    {
+        for (var i = _array.Length - 1; i &gt; 1; i--)
+            for (var j = 0; j &lt; i; j++) if (_array[j] &gt; _array[j + 1])
+                    Swap(j, j + 1);
+
+        void Swap(int i, int j)
+        {
+            var temp = _array[i];
+            _array[i] = _array[j];
+            _array[j] = temp;
+        }
+    }
+}</code></pre>
+<p>Becareful though, not to overdo it, as this can lead to some insanely huge looking parent methods, which is the worst thing you can dowith your code. As a rule of thumb, use local functions only whenyou know they will be short, else useother private methods and try to separate concerns, do not make methods more 10-20 lines long.</p>
+<p>Always remember:</p>
+<ul>
+<li>1-10 lines is perfect</li>
+<li>10-20, you need a short check on code</li>
+<li>20-30, it's getting out of hand</li>
+<li>50-60+, Houston, we have a problem</li>
+</ul>
+<blockquote><p>If your method does not fit your screen, then you are in some deep trouble. And don't cheat with pivot screens.</p></blockquote>
+<h4>Expression bodied members</h4>
+<p>Finally, this is another great feature. I loved expression bodied members in the previous release, my single line methods looked so good with that syntax.<br />
+With the new syntax,constructors, destructors, even getters and setters can have expression bodies.<br />
+Look on the previous example, the constructorhas an expression body.</p>
+<h4>Throw expressions</h4>
+<p>You can throw an exceptionwhen using the ternary conditional operator (<code>?:</code>), the null coalescing operator (<code>??</code>) or as the body of an expression-bodied lamda or method.<br />
+Take a look at the following examples:</p>
+<pre class="prettyprint"><code>// Using the ternary conditional operator
+return condition ? &quot;Yes, it's true&quot; : throw new Exception(&quot;Oops&quot;);
+
+// Using the null coalescing operator
+return value ?? throw new Exception(&quot;Oops&quot;);
+
+// Expression-bodied method
+public void Throws() =&gt; new Exception(&quot;Oops&quot;);</code></pre>
+<h3>Summary</h3>
+<p>Cool new features, improving your experience with the language.<br />
+I haven't been through many other features, maybe the most notorious of them, <em>the pattern matching.</em>This is on purpose. As I said in the beginning, my intention was to go through stuff that I find useful in my daily routine, and for the moment, I do not find pattern matching that useful for me. Probably I need to dig deeper and see the advantages, but for the moment I do not use it.</p>
+<p>What new features do you use? Do they come in handy for you?</p>

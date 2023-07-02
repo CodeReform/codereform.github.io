@@ -1,0 +1,78 @@
+---
+layout: post
+title: Learning React - Components and state
+date: 2018-05-09 19:33:10.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- JavaScript
+- React
+tags:
+- ES6
+- reactjs
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _thumbnail_id: '1013'
+  _publicize_job_id: '17670601113'
+  timeline_notification: '1525894390'
+  enclosure: |
+    https://georgedyrra.files.wordpress.com/2018/05/20180505_202931trim.mp4
+    104025
+    video/mp4
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/05/09/learning-react-components-and-state/"
+---
+<p>Components are small, isolated and reusable units of work that make up a piece of a user interface. Each component is independent, with emphasis in separation of concerns, having it's own business &amp; presentation logic.</p>
+<p>In this post, I am going to show you how to create a single component, as well as how to mutate state within that component by either passing variables, one way in the component or by changing an input value which changes the component's state.</p>
+<p><!--more--></p>
+<h2>Source code</h2>
+<p>Code outlined in this article can be found on <a href="https://github.com/gdyrrahitis/bpost-learning-react-components">GitHub</a>.</p>
+<h2>Components</h2>
+<p>In the previous post, I showed you how to create a Hello World application with React. But this was just a simple example to get you started, as you getting to know React you might be getting eager to learn more of its goodies.</p>
+<p>Such goodies are the React components. These are reusable units of work that make up the user interface. When you are designing your UI you do this unconsciously, you define small parts in the UI, which make it up as a whole. For example, think of a UI with a header, a body, a sidebar and a footer. You have 4 components here, each of them independent of the view that is composing them, each one of them can be reused in other views. The good part is that each of them is written once! Score!</p>
+<p>React components can be defined via a function or an ES6 class. In latter case, it should derive from <code>React.Component</code>. Then you can pass props to a component, which is a single object property. This will contain all the input you wish to pass to the component in a form of a JavaScript object.</p>
+<p>Components follow a naming convention, a component must always start with a capital letter. React treats components that start with lowercase letter as DOM tags.</p>
+<h2>Application</h2>
+<p>I start where I left in the <a href="https://wp.me/p7uERY-bo">previous post</a>, so I will continue with the same setup for my React application. I am only going to add a new <code>app.js</code> file and modify a bit the <code>main.js</code> to use the App component, rather have everything defined there.<br />
+I import the App component in <code>main.js</code> and I use it in <code>render</code> method. The <code>message</code> string is passed in the App component by using the <code>message</code> custom attribute. This is passed in the <code>props</code> object of the component, so the props for App component will be:<br />
+{% gist 442457d1bc9270a65014c5d6ffa1569b  %}</p>
+<p>This is the full code for <code>main.js</code></p>
+<p>{% gist ac7589ef85559f32c0fd8d4cfb0b5ed4 %}</p>
+<p>Next up, I work out the <code>app.js</code> file, in which I export the <code>App</code> component. This is an ES6 class, and it derives from <code>React.Component</code>. This exposes the <code>render</code> method, so you must implement it in your component definitions. This method should return a valid <code>JSX Element</code>.<br />
+{% gist e308c3de3618e11ae60c15f71ab66d39  %}</p>
+<p>Let's dig some more into the render method. Following is its implementation, as you might see, it only returns valid JSX. I render the message in the jumbotron, then in next row is a form definition, with only one text input. After that, is another bootstrap row which uses the functional <code>SayHi</code> component. Take a look at the code coming up and I will take it from there to discuss its bits and pieces. {% gist e1cee48181688c5d5a79af32c3ab4a03  %}</p>
+<p>The message that is rendered in the bootstrap jumbotron, is coming from the entry point, <code>main.js</code>. I directly access the <code>message</code> property from the <code>props</code> object. This object is passed in the component's constructor.</p>
+<p>Now on the <code>input</code> element. I would like to change the value stored in the component when changing the input's content. Remember that each component has its own state, so it makes sense to store the input's value to the component's state and change it when user enters some text into it. For this reason, I am using the <code>state</code> object of the component, this is inherited from the <code>React.Component</code> class and it's a plain object property. I store a new entry, called <code>value</code> and I pass it on the <code>value</code> attribute of the <code>input</code> element.<br />
+In order to change this <code>value</code> property on the state, I use the <code>onChange</code> handler, passing as callback the private <code>onNameChange</code> method. So now, each time user is changing the input content, this handler will update the <code>state.value</code> with the appropriate text.</p>
+<p>Finally, I use a functional component to display the <code>state.value</code> property. <code>SayHi</code> is just a private function within the <code>App</code> component. This function takes a <code>props</code> object in the same fashion as the App component receives props parameter via its constructor.</p>
+<p>You might be wondering, where is that <code>props</code> property coming from? Answer is via the constructor parameters, this is common for all components. I have also initialized the <code>state</code> object, with an object initializer and an empty <code>value</code> property. Lastly, I made sure to bind the <code>onNameChange</code> method to this class, so the <code>this</code> used within that method has the scope of the App class. Make sure to call <code>super()</code> if you are using a constructor, as this is mandatory in such case.<br />
+{% gist eb4254386a61ef851bf1e338803c51ee  %}</p>
+<p>At the beginning of this blog, I talked about class and functional components. An example of class component is the <code>App</code> and of functional is the <code>SayHi</code> function. This function receives as well a props object, just like App component. React treats this is as standard component. It should return a valid JSX element. I return an <code>h4</code> element with the value passed or a message which prompts to enter a name if nothing passed or at least not 3 characters are entered.<br />
+{% gist 12d39026f86713579625b550d7b56078  %}</p>
+<p>Last piece in the puzzle, is the callback handler for the <code>onChange</code> event. It only sets the state to the current text rendered in input element.<br />
+{% gist 315e5cd0fd4108b9bafadc98cddd5bd5  %}</p>
+<p>It's probably time to talk a little bit on component state. As mentioned earlier, each component holds its own state. This is called also local state for the class and it is a simple JavaScript object (it is more than that, but try to imagine this as just an object). State management in React is very important and you should treat state correctly if you want to get the best out of your React applications.<br />
+A rule that you should never forget is that you should not modify state directly, rather you should use the <code>setState(...)</code> method when you'd like to update a state property. The only place that you can assign values to state directly is the constructor.</p>
+<p>This is the full code of the <code>App</code> component.<br />
+{% gist 1a3c76c225d9fc45aaefc29efd392e4f  %}</p>
+<p>[video width="1920" height="1080" mp4="https://georgedyrra.files.wordpress.com/2018/05/20180505_202931trim.mp4" loop="on" autoplay="on"][/video]</p>
+<p>This is a very good step towards learning React, as you probably got the feel of what is a component and what a component can do. Unfortunately, this solution here is not scalable. My view definition contains too much markup, this can be divided further into components, which could broadcast/listen to state changes through some sort of communication mechanism.<br />
+In the next post, I am going to refactor this very simple application by separating the concerns into components and by building a communication mechanism between them so one component's state changes would affect another, independent component.</p>
+<h2>Summary</h2>
+<p>In this post you learned what a component is and how it is defined in React.<br />
+You have also learned how to create your own components, pass props to them and also mutate the component's internal state.</p>
+<p>If you liked this blog post and found it useful, please like, share &amp; subscribe for more! Also, if not yet a follower, follow me on <a href="https://twitter.com/giorgosdyrra">Twitter</a>!</p>
+<hr />
+<p style="text-align:left;">This post is part of the Learning React series</p>
+<ul>
+<li class="active"><a href="https://wp.me/p7uERY-bo">Learning React - Hello world</a></li>
+<li><a href="https://wp.me/p7uERY-gA"><strong>Learning React - Component state</strong></a></li>
+<li><a href="https://wp.me/p7uERY-gW">Learning React - Managing state with React Redux</a></li>
+</ul>

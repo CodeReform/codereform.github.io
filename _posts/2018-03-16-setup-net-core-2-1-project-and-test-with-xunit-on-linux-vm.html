@@ -1,0 +1,124 @@
+---
+layout: post
+title: Setup .NET Core 2.1 project and test with XUnit on Linux VM
+date: 2018-03-16 01:45:08.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET Core"
+- C#
+tags:
+- Linux
+- Vagrant
+- XUnit
+meta:
+  geo_public: '0'
+  _edit_last: '75937724'
+  _thumbnail_id: '833'
+  _wp_old_slug: setup-net-core-2-1-project-and-test-with-xunit-in-linux-vm
+  _publicize_job_id: '15801821465'
+  timeline_notification: '1521237112'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/03/16/setup-net-core-2-1-project-and-test-with-xunit-on-linux-vm/"
+---
+<p>Working with .NET Core is so much fun, but it can be a little bit tricky sometimes, unit test projects with XUnit, how am I supposed to run the tests from CLI using .NET Core 2.1 runtime?<br />
+In this post I am going to quickly setup a .NET Core test project along with an XUnit test project and will run the tests on a Linux VM that I am going to setup with <a href="https://www.vagrantup.com/intro/index.html">HashiCorp Vagrant</a>.</p>
+<p><!--more--></p>
+<p>I will not go into many details here, rather I should jump quickly on the tutorial, which I build through my Windows 10 OS.<br />
+Though I will provide some honorable mentions to the tools I will be using</p>
+<ul>
+<li><a href="https://www.vagrantup.com/downloads.html">HashiCorp Vagrant</a></li>
+<li><a href="https://www.virtualbox.org/wiki/Downloads">Oracle VirtualBox</a></li>
+<li><a href="https://www.microsoft.com/net/download/linux-package-manager/ubuntu14-04/sdk-2.1.300-preview1">.NET Core SDK 2.1</a></li>
+</ul>
+<p>Make sure to have the first two installed. If you do not need VirtualBox, let's say you are running a Hyper-V, follow along, but you are on your own setting up the VM.<br />
+Let's jump into setting this up.</p>
+<h2>Setup</h2>
+<p>First thing is to create the workspace. I will create my workspace at<code>D:\Dev\Vagrant</code>, which is a location that already existed on my machine. I will create a new folder with name<em>bp-dotnet-sample</em>, via command prompt,</p>
+<pre class="prettyprint"><code>$ mkdir bp-dotnet-sample</code></pre>
+<pre class="prettyprint"><code>$ cd bp-dotnet-sample</code></pre>
+<p>Now it's time to setup the Vagrantfile, so type</p>
+<pre class="prettyprint"><code>$ vagrant init</code></pre>
+<p>This will create the vagrant file in the directory. This is a Ruby code based file, so, next up, I will setup a simple Ubuntu Linux VM via that. Boilerplate file is too noisy, too many comments, just butcher them out, leave what is required and setup the VM, like so</p>
+<p>{% gist 83c3e993cea6c515efb7781e46521f71 %}</p>
+<p>Configuration file is in place, let's build this bad boy by typing</p>
+<pre class="prettyprint"><code>$ vagrant up</code></pre>
+<p>This will take a while, in case you don't have the OS image already, depending on your network speed.<br />
+When it finally fetches the image, vagrant will create and run the VM, which you will be able to see via VirtualBox.</p>
+<p><a href="{{ site.baseurl }}/2018/03/vbox1.png"><img class="alignnone size-full wp-image-842" src="{{ site.baseurl }}/assets/2018/03/vbox1.png" alt="" width="750" height="411" /></a></p>
+<p>It's time to login into the VM, install .NET Core SDK and start coding.</p>
+<pre class="prettyprint"><code>$ vagrant ssh xunit</code></pre>
+<p>It asks for your password, and I provide <code>vagrant</code> as the one. By default, when vagrant provisions new VMs, if not instructed otherwise, it sets username and password as <code>vagrant</code>.</p>
+<p>I am logged in now</p>
+<p><a href="{{ site.baseurl }}/2018/03/xunit_machine.png"><img class="alignnone size-full wp-image-844" src="{{ site.baseurl }}/assets/2018/03/xunit_machine.png" alt="" width="678" height="484" /></a></p>
+<p>Next up, I will install .NET Core SDK 2.1<br />
+First, check the release distro, by typing</p>
+<pre class="prettyprint"><code>$ lsb_release -a</code></pre>
+<p>I have installed an Ubuntu 14.04 version as it seems</p>
+<p><a href="{{ site.baseurl }}/2018/03/distro.png"><img class="alignnone size-full wp-image-846" src="{{ site.baseurl }}/assets/2018/03/distro.png" alt="" width="750" height="108" /></a></p>
+<p>I will follow the <a href="https://www.microsoft.com/net/download/linux-package-manager/ubuntu14-04/runtime-2.1.0-preview1">official instructions</a>, so first register the Microsoft product key as trusted</p>
+<pre class="prettyprint"><code>$ curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor &gt; microsoft.gpg
+$ sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg</code></pre>
+<p>And then the desired version package feed</p>
+<pre class="prettyprint"><code>$ sudo sh -c 'echo &quot;deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-trusty-prod trusty main&quot; &gt; /etc/apt/sources.list.d/dotnetdev.list'</code></pre>
+<p>Also, update the <code>apt-get</code> package tool</p>
+<pre class="prettyprint"><code>$ sudo apt-get install apt-transport-https</code></pre>
+<pre class="prettyprint"><code>$ sudo apt-get update</code></pre>
+<p>And now install .NET Core SDK</p>
+<pre class="prettyprint"><code>$ sudo apt-get install dotnet-runtime-2.1.0-preview1-26216-03</code></pre>
+<p>After it is done, check if .NET Core SDK is indeed installed</p>
+<pre class="prettyprint"><code>$ dotnet --info</code></pre>
+<p><a href="{{ site.baseurl }}/2018/03/dotnet-info.png"><img class="alignnone size-full wp-image-860" src="{{ site.baseurl }}/assets/2018/03/dotnet-info.png" alt="" width="512" height="363" /></a></p>
+<h3>Setting up the project</h3>
+<p>I will create a .NET Standard 2.0 class library, a test project that references that library and a solution to group those projects together.</p>
+<p>Create a new working directory</p>
+<pre class="prettyprint"><code>$ mkdir sample &amp;&amp; cd sample/</code></pre>
+<p>Now the class library project, named <code>Sample.csproj</code></p>
+<pre class="prettyprint"><code>$ dotnet new classlib -n Sample</code></pre>
+<p>And the corresponding XUnit test project named <code>Sample.Unit.Tests.csproj</code></p>
+<pre class="prettyprint"><code>$ dotnet new xunit -n Sample.Unit.Tests</code></pre>
+<p>And add reference to the <code>Sample.csproj</code></p>
+<pre class="prettyprint"><code>$ dotnet add Sample.Unit.Tests/Sample.Unit.Tests.csproj reference Sample/Sample.csproj</code></pre>
+<p>Finally, I will create a new solution named <code>Samples.sln</code> and add both projects there</p>
+<pre class="prettyprint"><code>$ dotnet new sln Samples.sln</code></pre>
+<p>I have two <code>.csproj</code> files in the directory, so I want to add all of them without too much fuss, thus I use a globbing pattern</p>
+<pre class="prettyprint"><code>$ dotnet sln Samples.sln add **/*.csproj</code></pre>
+<p>Next step is to add a simple class in the class library with a simple method that returns the result of adding two numbers.</p>
+<pre class="prettyprint"><code>$ cd Sample
+$ rm Class1.cs
+$ touch Calculator.cs
+$ vim Calculator.cs</code></pre>
+<p>And this is the source code</p>
+<p>{% gist f7509a4854162e5c22afc80d2d24df23  %}</p>
+<p>Next step is to make the XUnit test project use the 2.1-preview runtime. Bear in mind that test projects must have a runtime and in this case, I will update the runtime from <code>.netcoreapp2.0</code> to <code>.netcoreapp2.1</code>.</p>
+<pre class="prettyprint"><code>$ cd .. 
+$ cd Sample.Unit.Tests/
+$ vim Sample.Unit.Tests.csproj</code></pre>
+<p>I've update <code>.csproj</code> to the following. Notice that I use the latest pre-release packages. You don't have to do this, stable release packages still work.</p>
+<p>{% gist 5ab7d443eb85f1a9805171c6cdd32966  %}</p>
+<p>In the same project, add a simple unit test for the <code>Add</code> method</p>
+<pre class="prettyprint"><code>$ rm UnitTest1.cs
+$ mkdir CalculatorTests
+$ touch Add.cs
+$ vim Add.cs</code></pre>
+<p>And the test code is</p>
+<p>{% gist 541807cc89c8e65b3d90021aa9bf9a2c  %}</p>
+<p>I will head back to the solution now and build the project. Please note that <code>dotnet build</code> does perform a restore unless you specifically instruct it not to do it by using the <code>--no-restore</code> option. I will let the build command handle package restore for me.</p>
+<pre class="prettyprint"><code>$ cd ..
+$ dotnet build</code></pre>
+<p><a href="{{ site.baseurl }}/2018/03/dotnet-build.png"><img class="alignnone size-full wp-image-864" src="{{ site.baseurl }}/assets/2018/03/dotnet-build.png" alt="" width="750" height="259" /></a></p>
+<p>Finally, I will run the tests. First, I will take a peak on how many and which tests are going to execute and then I will run them. <code>dotnet test -t</code> does not run the test, rather it discovers them.</p>
+<pre class="prettyprint"><code>$ dotnet test Sample.Unit.Tests/Sample.Unit.Tests.csproj -t
+$ dotnet test Sample.Unit.Tests/Sample.Unit.Tests.csproj</code></pre>
+<p><a href="{{ site.baseurl }}/2018/03/dotnet-test.png"><img class="alignnone size-full wp-image-865" src="{{ site.baseurl }}/assets/2018/03/dotnet-test.png" alt="" width="750" height="375" /></a></p>
+<p>Tests run successfully.<br />
+Fortunately, it wasn't that difficult, as the CLI provides the <code>xunit</code> template, so you can avoid boilerplate code.Template installs the XUnit framework, but also installs <code>xunit.runner.visualstudio</code> which is the XUnit adapter and the <code>Microsoft.NET.Test.Sdk</code> which providesMSbuild targets and properties for building .NET test projects. Without those two, you won't be able to run tests, as <code>dotnet test</code> requires a test adapter in place and the MSBuild targets.</p>
+<p>Unfortunately though, there is no any CLI template ready to .NET Core 2.1-preview, so you have to modify the runtime, and in some cases the packages, yourself. Just change the runtime to <code>.netcoreapp2.1</code>, and packages to appropriate versions.</p>
+<h2>Summary</h2>
+<p>In this post I walked you through getting a Linux VM up and running with Vagrant, install .NET Core SDK, create a project and a test project that uses XUnit, set it to .NET Core 2.1-preview, restore, build and run tests.</p>

@@ -1,0 +1,125 @@
+---
+layout: post
+title: Learning React - Managing state with React Redux
+date: 2018-05-09 19:33:20.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- JavaScript
+- React
+tags:
+- ES6
+- reactjs
+- redux
+meta:
+  geo_public: '0'
+  _thumbnail_id: '1013'
+  _edit_last: '75937724'
+  enclosure: |
+    https://georgedyrra.files.wordpress.com/2018/05/20180505_202931trim.mp4
+    104025
+    video/mp4
+  _publicize_job_id: '17670605884'
+  timeline_notification: '1525894400'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/05/09/learning-react-managing-state-with-react-redux/"
+---
+<p>Designing your application using a component-based architecture is a first step towards a nice decoupled design. But with great power comes great complexity! Components might need to interact in different ways in order to achieve some common goals. How can components communicate with each other? In this post, I am going to show how to make components communicate by using the redux pattern.</p>
+<h2><!--more-->Source Code</h2>
+<p>Code outlined in this article can be found on <a href="https://github.com/gdyrrahitis/bpost-learning-react-redux">GitHub</a>.</p>
+<h2>State in React's components</h2>
+<p>In the <a href="https://wp.me/p7uERY-gA">previous post</a>, I blogged about React's components and how to manage state internally in a component. Although working with state within a component is great, it is limiting as well, as this state is only local, it does not travel to other components within the same application. In some cases this is fine, but in other scenarios, like in more complex applications, communication is vital. Components might want to react on actions that are sourced from other component state changes.</p>
+<p>There are various ways to support component communication, but I would like to talk about the Redux pattern in this post.</p>
+<h2>Redux</h2>
+<p>Redux is pattern, based on the <a href="https://facebook.github.io/flux/docs/in-depth-overview.html#content">Flux</a> pattern that Facebook introduced. Let me quickly introduce you to the gist of these patterns by first exploring quickly the Flux and then the Redux patterns. (disclaimer: image on Flux comes from the official Facebook docs page).</p>
+<h4>Flux</h4>
+<p>Intent: A unidirectional data flow pattern to notify state changes in component-based architecture applications.</p>
+<p>[caption id="" align="alignnone" width="1300"]<img src="{{ site.baseurl }}/assets/2018/05/flux-simple-f8-diagram-explained-1300w.png" alt="Flux pattern" width="1300" height="708" /> Image 1 - Flux pattern[/caption]</p>
+<p>Participants:</p>
+<ul>
+<li><strong>Dispatcher</strong>. Receives and emits actions to stores.</li>
+<li><strong>Store</strong>. Receives actions, which mutate state, which in turn update the controller view.</li>
+<li><strong>Action</strong>. Indicates data/state change.</li>
+<li><strong>View</strong>. Receives state/data changes that render in UI, but also emits actions which update data/state based on UI interactions.</li>
+</ul>
+<p>There is a central dispatcher for the application. That dispatcher receives actions, which might come from a view or might come from other entities like a service or a timer. Dispatcher is then broadcasting actions to the stores, which might be more than one, and each store updates itself based on the incoming action. Finally, each store is updating its related controller view by emitting a change event to that view.</p>
+<h4>Redux</h4>
+<p>Redux is based on the Flux pattern I mentioned above, but it has three extra principles.</p>
+<ol>
+<li>Store is now a singleton, the single source of truth.</li>
+<li>State is immutable.</li>
+<li>Changes are made with pure functions.</li>
+</ol>
+<p>[caption id="attachment_1071" align="alignnone" width="750"]<a href="{{ site.baseurl }}/2018/05/redux.png"><img class="wp-image-1071 size-full" src="{{ site.baseurl }}/assets/2018/05/redux.png" alt="Redux pattern" width="750" height="599" /></a> Image 2 - Redux pattern[/caption]</p>
+<p>Participants:</p>
+<ul>
+<li><strong>Store</strong>. The singular source of truth, it receives actions from dispatchers, uses reducers internally to change state and also emits data/state changes to controller views.</li>
+<li><strong>Action dispatchers</strong>. This is a dispatcher that listens to view events or receives actions outside a view, like a push notification or the timer API, etc. It dispatches events to the store, which contain data &amp; action types, with the latter helping in identifying the state change that should occur.</li>
+<li><strong>Reducer</strong>. It is a pure function, which receives the state and the current action and provides as output the new state or if the action type does not match the reducer type, the current state, untouched.</li>
+<li><strong>View</strong>.Receives state/data changes that render in UI, but also uses action dispatchers to dispatch events back to the store to indicate data/state changes.</li>
+</ul>
+<p>Store now is the single source of truth, only one store exists for the application. This store can receive various actions which are dispatched by action creators. One or more reducers are used by the store to create a new state, while finally, the view gets its state updated via the store.</p>
+<p>State cannot be mutated by views or anything else except the store itself. For this reason, in order to update state you need to dispatch a new event to the store and never assign to the state stored in store directly.</p>
+<p>Finally, state is updated within the store by a reducer, which in turn is a <a href="https://en.wikipedia.org/wiki/Pure_function">pure function</a>. Be advised that pure functions do not cause any side effect, which in simple words means that it will produce an output based on the input it gets without changing the input.</p>
+<p>For React, Dan Abramov created the <a href="https://redux.js.org/">Redux</a> library that provides an implementation on the Redux pattern along with a set of helpful APIs. Please be advised, that this approach is not lean and involves complexity, so be careful and evaluate your application complexity on how redux will be able to improve the situation. If your application is relatively simple, redux might not be the way to go. Check <a href="https://redux.js.org/#before-proceeding-further">this section</a> from the <a href="https://redux.js.org/">official redux website</a> for more information on where redux might be useful.</p>
+<h2>Application</h2>
+<p>First I will start by downloading the redux npm package</p>
+<pre class="prettyprint"><code>npm i react-redux --save</code></pre>
+<p>That's it, I don't need to change webpack, or anything else, only my React code. Let's deep dive into the changes, by first exploring the store.</p>
+<h4>Store</h4>
+<p>Let's first define the state that the store is going to manage and the action types that it is going to allow. If you have been following along, in the previous post, I had created a single component, that had one textbox. Based on user's input in that textbox, another area within the view was being updated, by receiving state changes and rendering state in the view. So, pretty much the application's state here is just a string, the input that the user types in the textbox. I can name the action type whatever I want, in this case I will name it <code>NAME_CHANGE</code>.</p>
+<p>As discussed earlier about the Redux pattern, I need a reducer for my store. I am going to create a reducer that is going to receive a state in a string form (the textbox content) and the action type I mentioned above. Then I will create my store using this reducer.</p>
+<p>{% gist a8e4432bff67c12567c657bc3d247d02 %}</p>
+<p>Pretty much what I described earlier. When the action type matches the state changes to this action value and when it does not match, state returns untouched.<br />
+I will use that store throughout my application components.</p>
+<h4>Main</h4>
+<p>Now that I have the store, it is time to actually use it. I import the store in the <code>main.js</code> file, in which I subscribe the main render function with the store. I am also passing the store reference to the <code>App</code> component, in order for the underlying components to be able to get the state or dispatch a new action.</p>
+<p>{% gist 8f048253b01d5b4ec2a816ac8cd5dc8d  %}</p>
+<p>Compared to the previous post, this application design is more granular as I have separated the concerns by defining more components. But now that I have defined different components for the form and for the input content that is displayed, I have to find a way to make these components to communicate.</p>
+<h4>Separating concerns with components</h4>
+<p>The App component is the root component for the application. But it gets more granular as App uses the <code>Jumbotron</code>, <code>FormContainer</code> and <code>Greet</code> components.<br />
+<code>FormContainer</code>, as the name implies, it serves as a container component, which in turn is encapsulating logic within the child <code>NameForm</code> component.</p>
+<p>Remember that in <code>main.js</code>, I passed a store reference to the <code>App</code> component in order to pass this further to child components that might depend on it. I am getting the store reference from the props object and I pass it to the <code>FormContainer</code> and <code>Greet</code> components respectively. First is using the store to dispatch state changes, while the latter is retrieving the state from the store to render in the view.</p>
+<p>{% gist c7bcb5e4f3e3bf3a10949ff10d3ea958  %}</p>
+<h4>The <code>Jumbotron</code> component</h4>
+<p>This is a very simple component, it just receives a string as input and it renders it within a bootstrap jumbotron.</p>
+<p>{% gist 9c3c9dc879422883949389a9ea561761  %}</p>
+<h4>The <code>FormContainer</code> component</h4>
+<p>This is a simple container component, it is used to contain the NameForm component, which does all the heavy lifting.</p>
+<p>A container is what it says, it is a component that contains other components.<br />
+Why you might want to have a container component?</p>
+<ul>
+<li>Separate rendering and business/data concerns.</li>
+<li>Being more granular, so child components can be reused.</li>
+</ul>
+<p>{% gist ef07e7521ca28a0b066a4683b9e46542  %}</p>
+<h4>The <code>NameForm</code> component</h4>
+<p>This is the place where I am using a dispatcher to dispatch the <code>NAME_CHANGE</code> action type to the store.<br />
+Take a look in the following code. I have an <code>&lt;input&gt;</code> element, which sets its value by using the value fetched from the store.<br />
+When the input content changes by some user interaction, the <code>onChange</code> event handler fires. In this case, I have defined a simple method that calls the <code>dispatch</code> method of the store and I pass a simple object with type as <code>NAME_CHANGE</code> and value as the input current text value. The <code>type</code> property is required.</p>
+<p>So every time a user enters or deletes any character in the textbox, store will be notified for this action and it will change the state. This is going to affect other components that are interested in that particular state, like the <code>Greet</code> component.</p>
+<p>{% gist cf4a22ba4e0ab31cb1cbe072071025b5  %}</p>
+<h4>The <code>Greet</code> component</h4>
+<p>This component renders the textbox contents, so it is technically listening for changes over the store's state.<br />
+I am just fetching the state from the store and passing it to the view to render, as you might notice in the <code>render</code> method, using the <code>store.getState()</code> method.</p>
+<p>{% gist 88d0069657a7b1ec84f8bf95fadb4339  %}</p>
+<p>Below you can see everything in action, it is working exactly like before in the previous post.</p>
+<p>[video width="1920" height="1080" mp4="https://georgedyrra.files.wordpress.com/2018/05/20180505_202931trim.mp4" autoplay="true" loop="true"][/video]</p>
+<p>Although this code seems to work and the problem of component communication seems to be weathered, I really don't like the fact that component's know about the store. They shouldn't even care, yet it is passed as dependency. In next post I will try to find a way to eliminate this dependency from the component's and make code less cluttered.</p>
+<h2>Summary</h2>
+<p>In this post you saw what is the Redux pattern and how you can use the React Redux library in your application to make components communicate.<br />
+You might need to take a bit more in depth look in Redux, learn more about the library and the use cases that it can be incorporated into. Redux is not recommended to be used in simple scenarios. Take a look at Dan Abramov's Egghead <a href="https://egghead.io/courses/getting-started-with-redux">free course</a> for more information on react redux.</p>
+<p>If you liked this blog post and found it useful, please like, share &amp; subscribe for more! Also, if not yet a follower, follow me on <a href="https://twitter.com/giorgosdyrra">Twitter</a>!</p>
+<hr />
+<p style="text-align:left;">This post is part of the Learning React series</p>
+<ul>
+<li class="active"><a href="https://wp.me/p7uERY-bo">Learning React - Hello world</a></li>
+<li><a href="https://wp.me/p7uERY-gA">Learning React - Component state</a></li>
+<li><strong><a href="https://wp.me/p7uERY-gW">Learning React - Managing state with React Redux</a></strong></li>
+</ul>

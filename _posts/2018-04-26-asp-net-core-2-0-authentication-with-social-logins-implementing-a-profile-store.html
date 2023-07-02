@@ -1,0 +1,94 @@
+---
+layout: post
+title: ASP.NET Core 2.0 Authentication with social logins - Implementing a profile
+  store
+date: 2018-04-26 07:53:04.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET Core"
+- C#
+tags:
+- ASP.NET Core 2.1
+- Authentication
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _thumbnail_id: '878'
+  _publicize_job_id: '17201729555'
+  timeline_notification: '1524729186'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/04/26/asp-net-core-2-0-authentication-with-social-logins-implementing-a-profile-store/"
+---
+<p>This post is part of a series on ASP.NET Core Authentication and I am going to talk about sign-in via social providers and how to maintain a profile store.</p>
+<p><!--more--></p>
+<h2>TL;DR</h2>
+<p>You can find the source code outlined in this article on <a href="https://github.com/gdyrrahitis/bpost-aspnet-social-logins-profile">GitHub</a>.</p>
+<h2>Application</h2>
+<p>Imagine a scenario where your application successfully uses a third-party provider to sign-in users. That seems pretty standard and straightforward. But what about new requirements your application might have, like provide an email address or have a physical home address? Some providers might not be able to serve you this kind of information, or either the user in question has not filled these up for his/her own reasons.</p>
+<p>From the above, seems that you need to take action. In this blog, I will talk about how to setup your application to sign-in a user via a social media network provider, like Facebook or Twitter and how to get this extra information the application requires. I will try to keep it simple, I won't really work with a data store, I will have my users setup in-memory. Application will require some extra info which will be username, which will be required, user's email address, which will be optional as well as home address which will be a single field, optional as well.</p>
+<p>User is given access via an authenticated cookie. In order to make this scenario happen, I will need to have a different approach, use a temporary authentication cookie, just to sign the user in, and then I will construct the user's identity with the extra information, destroy the temp cookie and finally sign the user in again with a valid cookie containing all the required claims.<br />
+The temporary cookie is used only to store the claims coming from the third-party provider. These claims will be then used to pre-populate the profile form, in which the user will provide some extra information. Upon successful submission of this form, the temporary cookie will be destroyed and a new, valid authentication cookie will be created with claims coming from the profile form.</p>
+<p>An example of this can be found at<a href="https://careers.microsoft.com/us/en/login">https://careers.microsoft.com/us/en/login</a>, you can try for instance sign-in with your LinkedIn profile. Upon successful login, if you of course visited the site for the first time, you will be redirected to a profile page, in which some information are pre-populated while other needs your attention.</p>
+<h2>Why a profile store</h2>
+<p>For the reasons described above, a profile store might be useful in cases you might want to get a hold on the user's claims or you want to store all the claims in the database per user.<br />
+This approach will allow to build complex authentication and authorization scenarios, once you hold yourself some info about the user.<br />
+You can also think about this as a way to sign up the user with the less hassle, promoting some better UX, as the user will not have to go through all the bits and pieces of the information you might require, this information can be extracted from the public profile that the user holds on the third-party provider.</p>
+<h2>Implementation</h2>
+<p>Code is based in previous post on talking about <a href="https://wp.me/p7uERY-9V">social logins,</a> so you might want to check it first, before moving forward, though it's not required. I will use the same kinda code here, same project layout, same providers and I will just add my stuff here, on setting up this profile store.</p>
+<p>First, I will start with the <code>Startup.cs</code> class, I will add a temporary authentication cookie in services, so I will use this one as the default when user logs in.</p>
+<p>{% gist 8ee8d968f2140930681f63f2cb6da1e1 %}</p>
+<p>I have set the <code>DefaultSignInScheme</code> to Temporary. Remember, this scheme describes the scheme that will be used when user signs in. The reason behind this was to create a custom sign-in flow, in which I am going to fetch signed-in user claims and then update build required a profile using those or input from the user, if any claim is missing.<br />
+Rest configuration remains the same. You might have noticed that I have added another cookie that is actually using the Temporary scheme as the default authentication scheme. This is key for the custom sign-in flow I mentioned earlier.</p>
+<p><code>TemporaryAuthenticationDefaults</code> is just a static class with static string property of value <code>"Temporary"</code>.</p>
+<p>{% gist b40e8945576aa5a4dfbc0621d41c401e  %}</p>
+<p>Next up, I need to setup the <code>AuthenticationController</code>, the <code>SignIn</code> and <code>SignOut</code> actions. I will need also a <code>Profile</code> action, in which the user will edit his/her profile, upon successful sign-in via the third-party provider.</p>
+<h3><code>SignIn</code> action</h3>
+<p>This is the first view the user visits when tries to sign-in. In this view, I list all the available third-party providers for the user to choose from and login. Before I show the view to the user though, I first check if he/she is already authenticated with the temporary cookie. In case that is true, user is redirected to the profile action, else the standard view is showing.</p>
+<p>{% gist 48a7de3a180dc996fa308482e0fee44d  %}</p>
+<p>Then, I have the <code>SignIn</code> overload action, which takes a provider as a route parameter. This is the one that performs the actual <code>Challenge</code> (401 Unauthorized) and redirects to the third-party provider login screen.<br />
+Also note the <code>returnUrl</code>, it is appended in the profile URL, which is used in the challenge <code>AuthenticationProperties</code> as the redirect URI. Reason for this is to have the third-party provider redirect to that URI upon successful login, rather back here, which could cause an endless loop.</p>
+<p>{% gist d692289874f8ae422715ba58f6a75c11  %}</p>
+<h3><code>Profile</code> action</h3>
+<p>This action carries a little bit of work and it is the bread and butter of this very blog.<br />
+First, I need to check if user is authenticated with the temporary cookie. If that is not the case, then I have to redirect the user back to <code>SignIn</code> action, cause something pretty bad has probably happened.</p>
+<p>Next, I'll need to fetch the user from the data store, using the <code>ProfileService</code> that is injected into the <code>AuthorizationController</code>. If user is not found, that means this user has never signed-up or signed-in with this application, because upon successful login, user details are persisted in the underlying data store.<br />
+So, in the case user is not found, I will display a form with profile details, some of them pre-populated with claims fetched from the third-party provider.<br />
+If user is found though, I will call the <code>SignInUserAsync</code> private method.</p>
+<p>{% gist 53c7034a08426a3c73360471acfbe882  %}</p>
+<p>The HTTP Post Profile action is checking if user entered the details correctly, by checking the <code>ModelState</code> and if yes, it creates a new profile and signs-in the user, calling the <code>SignInUserAsync</code> method.</p>
+<p>{% gist 34c17d2455a5e44902e8a3836064fca5  %}</p>
+<h4>The <code>SignInUserAsync</code> method</h4>
+<p>This is responsible of signing in the user, by performing the following steps:</p>
+<ol>
+<li>Sign-out user from temporary cookie</li>
+<li>Create a new <code>ClaimsPrincipal</code> using the <code>ProfileViewModel</code></li>
+<li>Sign-in user with the <code>CookieAuthenticationDefaults</code> scheme. If you don't do this, you won't be able to store the claims on the cookie, having the user seem likes is not logged in.</li>
+<li>Return an <code>IActionResult</code> redirect back to the <code>returnURL</code> or home page, upon successful sign-in.</li>
+</ol>
+<p>{% gist 5c75c77032e192c5ddef1a6739d5d750  %}</p>
+<h3><code>SignOut</code> action</h3>
+<p>This is a pretty straightforward action, a call to the <code>HttpContext.SignOutAsync</code>, passing now the <code>CookieAuthenticationDefaults</code> value, which is "cookie", is enough to sign-out the user and finally, I redirect back to the home page.</p>
+<p>{% gist 69b380c45e1582b74e3fe4fe3405ee6a  %}</p>
+<h2>Summary</h2>
+<p>In this post you have learned how to provide authentication via third-party providers and how to require extra information from signed-in user, using a temporary cookie. The temporary cookie is to hold the user claims from the third-party provider, while the user edits his/her profile. Upon successful profile edit, temporary cookie is destroyed, a new cookie is created that is used for authenticating the user, populated with claims from the temporary cookie and the profile view model.</p>
+<p>If you liked this blog, please like and share! For more, follow me on <a href="https://twitter.com/giorgosdyrra">Twitter</a>.</p>
+<hr />
+<p>This post is part of the <em>ASP.NET Core 2.0 Authentication series</em>.</p>
+<ol>
+<li><a href="https://wp.me/p7uERY-85">ASP.NET Core 2.0 Cookie Authentication - Local logins</a></li>
+<li><a href="https://wp.me/p7uERY-aP">ASP.NET Core 2.0 Authentication with local logins - Implementing claims transformation</a></li>
+<li><a href="https://wp.me/p7uERY-aX">ASP.NET Core 2.0 Authentication with local logins - Responding to backend changes</a></li>
+<li><a href="https://wp.me/p7uERY-aV">ASP.NET Core 2.0 Authentication with local logins - Implementing custom authorization policies</a></li>
+<li><a href="https://wp.me/p7uERY-9V">ASP.NET Core 2.1 Authentication with social logins</a></li>
+<li><a href="https://wp.me/p7uERY-aR"><strong>ASP.NET Core 2.0 Authentication with social logins - Implementing a profile store</strong></a></li>
+<li><a href="https://wp.me/p7uERY-ib">ASP.NET Core 2.0 Authentication with Azure Active Directory</a></li>
+<li><a href="https://wp.me/p7uERY-aT">ASP.NET Core 2.0 Authentication with Azure Active Directory B2C</a></li>
+<li>ASP.NET Core 2.0 Authentication, IdentityServer4 and Angular</li>
+</ol>

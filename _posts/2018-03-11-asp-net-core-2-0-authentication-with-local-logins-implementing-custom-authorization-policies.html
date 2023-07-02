@@ -1,0 +1,172 @@
+---
+layout: post
+title: ASP.NET Core 2.0 Authentication with local logins - Implementing custom authorization
+  policies
+date: 2018-03-11 13:32:20.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET Core"
+- C#
+tags:
+- ASP.NET Core 2.0
+- Authentication
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _thumbnail_id: '789'
+  _publicize_job_id: '18820965151'
+  timeline_notification: '1528657203'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2018/03/11/asp-net-core-2-0-authentication-with-local-logins-implementing-custom-authorization-policies/"
+---
+<p>This post is part of a series on ASP.NET Core 2.0 Authentication and I am going to talk about authorization policies, something different from what we've seen so far in the series, as most of posts are focusing in authorization.</p>
+<p>I will show how to secure certain resources based on specific criteria on user's claims.</p>
+<p><!--more--></p>
+<h2>Application</h2>
+<p>Application is based on previous post,<a href="https://wp.me/p7uERY-aP">ASP.NET Core 2.0 Authentication with local logins - Implementing claims transformation</a>, with a few additions.<br />
+This time, I am going to demonstrate how to enforce authorization policies on pages, on Razor MVC views, and finally mixing authorization handlers in order to decide if user should have access to the resource or not.</p>
+<p>Aside from the familiar home, login and profile pages, I have added a few more. Namely, I have added a page that has an age requirement, so in order to have access to this page, a user must be older than the minimum age requirement. This example, demonstrates simply how to utilize a single authorization policy and enforce it to a specific page.</p>
+<p>To be able to demonstrate how to use authorization policies in a Razor MVC View, I have also added a new page, which is going to be visible in the navbar only when the user meets its requirements.</p>
+<p>Finally, I have also added a couple more pages to support a more complex example of using and mixing authorization handlers. In this case, I am going to secure access to a blog, with members having roles such as admin, author, moderator and anonymous. Members whose role is one of the first three, should be able to access the blog administration panel. Anonymous users should only be able to view the listed blog posts.<br />
+I have added one page that lists some blog posts and contains a button which opens the administration panel only to elevated roles; anonymous users will not be able to see it, thanks to view-based authorization. A member is also denied access if hers/his account is frozen (only for elevated roles as well).<br />
+This example here is to demonstrate how to mix various handlers to allow a given logged-in user to access the blog's admin panel.</p>
+<h3>Source code</h3>
+<p>You can find the code outlined in this article on <a href="https://github.com/gdyrrahitis/bpost-aspnetcore-local-logins/tree/authorization-policies">Github</a>.</p>
+<h2>Authorization Policies</h2>
+<p>Authorization is a step that comes after authentication. I usually think about those terms in the following way:</p>
+<ul>
+<li>Authentication is the process that wants me to verify who I am.
+<ul>
+<li>Who are you?</li>
+</ul>
+</li>
+<li>Authorization is the process that wants me to verify if I am qualified to access a certain resource based on predefined policies.
+<ul>
+<li>Are you allowed to perform this action?</li>
+</ul>
+</li>
+</ul>
+<p>Usually we perform authorization based on user's claims. These claims might be in a cookie or in a <a href="https://blog.angular-university.io/angular-jwt/">JWT</a> token or in a <a href="https://docs.microsoft.com/en-us/dotnet/framework/wcf/feature-details/saml-tokens-and-claims">SAML</a> token, it doesn't really matter what the transport/store type is, all these have something in common and that is that they carry a specified amount of claims associated with a user.</p>
+<p>Based on those claims now, we as developers, have the ability to create features which are very precise and solve much more complex authorization requirements. In ASP.NET Core, this ability is granted by <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/introduction">authorization policies</a>.</p>
+<p>An authorization policy comprises of three components:</p>
+<ol>
+<li>The requirement</li>
+<li>The handler</li>
+<li>The configured policy</li>
+</ol>
+<h3>Requirements</h3>
+<p>A requirement defines the business logic behind an authorization policy. It can be used by one or more policies and in reality it is just a plain class object which implements the empty <code>IAuthorizationRequirement</code> interface. You can define your own parameters, properties and data for that requirement, which will be used directly by a handler.<br />
+A requirement can have multiple handlers.</p>
+<h3>Handlers</h3>
+<p>A handler evaluates the requirement's properties/business logic against its context to determine if access is allowed or not, so it can delegate the process to another handler or terminate it on the spot. You can use a handler to work with a specific requirement, and that handler should inherit from <code>AuthorizationHandler&lt;TRequirement&gt;</code> abstract class. You'll need to override the<code>HandleRequirementAsync</code> method, which has the following definition:</p>
+<blockquote><p>Makes a decision if authorization is allowed based on a specific requirement.</p></blockquote>
+<p>From this we can understand that a handler plays a crucial role in deciding to provide access or not to a user. This method, except of the<code>AuthorizationHandlerContext</code> context that is passed, it takes a generic <code>TRequirement</code>, which is the requirement provided in the <code>AuthorizationHandler</code> generic parameter.</p>
+<p>A handler can have two states</p>
+<ol>
+<li>Succeeded</li>
+<li>Failed</li>
+</ol>
+<p>A <code>success</code> state means after validating against the requirement, user's claims were valid, thus, access is granted, based on that policy. In order to fulfill a requirement, a simple call to the <code>AuthorizationHandlerContext.Succeed</code> method must commence, passing the requirement as a parameter. More on this in code coming next.</p>
+<p>The <code>failed</code> state is more complicated. As mentioned earlier, a call to the <code>Succeed</code> method is enough to fulfill a given requirement, but doing nothing essentially means the requirement failed. However, if we look at the <code>AuthorizationHandlerContext</code>, a <code>Fail</code> method exists. Well, even if it exists it should be used with caution and I will explain why shortly.</p>
+<p>Imagine this; fairly often we have several handlers responsible to verify a requirement. As long as one of them calls the <code>Succeed</code> method, access is approved.<br />
+But, if any of them fails, thus calling the <code>Fail</code> method, access is denied, no matter how may of the other handlers succeeded. If nobody calls the <code>Succeed</code> method, then the requirement is going to fail, but this won't stop the process from moving to the next handler for that requirement.<br />
+That said, we can understand that leaving out the call to the <code>Fail</code> method, gives us the ability to introduce additional handlers in the future, without needing to alter any existing handler code.</p>
+<p><code>Fail</code> method should only be used if there is some form of absolute blocker that would render the rest of the handlers and essentially rest of the policy useless, so use this method with caution.</p>
+<h3>Configuring a policy</h3>
+<p>To setup an authorization policy, you just need to use the authorization middleware, which can be registered in the pipeline by the <code>AddAuthorization</code> method in <code>ConfigureServices</code>. You can register as many policies as you like, but remember to map them to the appropriate authentication scheme if needed.<br />
+If you have already set the <code>DefaultPolicy</code> to have one default authentication scheme, then all the other policies will derive from it.</p>
+<p>Use the <code>AddPolicy</code> method to add new policies by name, which can be either delegates or classes (OOP approach).</p>
+<p>{% gist 29b5c997b43ce03d53684b758deb9027 %}</p>
+<p>Then you can use that name with the <code>Authorize</code> attribute, for instance, to provide sophisticated security over a resource.</p>
+<p>{% gist 5846c7f0a440201d023d3c3930b22a4f  %}</p>
+<h2>Implementation</h2>
+<p>Let's start off with the implementation, first we need to add the authorization middleware into the pipeline, so in <code>ConfigureServices</code> call the <code>AddAuthorization</code> method. I will provide the default authentication scheme to be used for all policies to be <code>CookieAuthenticationDefaults.AuthenticationScheme</code>.</p>
+<p>{% gist 8e838c0dc663ff97acfaaed17dc10e90  %}</p>
+<p>This sets up a default authorization policy, which requires the user to be authenticated. The default authorization scheme for this policy and for the next to come is <code>"cookie"</code>, for cookie authorization.</p>
+<h3>Age Requirement</h3>
+<p>I want to create a new page where people under 18 would be denied access. Let's first create and secure this page. In HomeController I'm adding the following action.</p>
+<p>{% gist 77e86b8d778a33bde52ea6e71aa369b0  %}</p>
+<p>I've decorated this action with the <code>Authorize</code> attribute, defining a policy. Now, when a user navigates to <code>/protected</code> route, authentication will kick in first, to determine if that user is indeed authenticated and if that is true, the authorization policy will run to determine if access should be granted. If user is denied access, the default access denied screen will show, else resource will be presented to the user.<br />
+The <code>Policies.AgeRestriction</code> is just a constant with the value<code>"AgeRestriction"</code>.<br />
+Configuration is fetched from <code>appsettings.json</code> file, following is some part of that config file</p>
+<p>{% gist 06f47cfce5c08eba49fc82f0b68e5aee  %}</p>
+<p>Now that we have everything in place, it's time to add that policy to the list of authorization policies. To do that, I need to get back the <code>Startup.cs</code> class, to <code>ConfigureServices</code>. In <code>AddAuthorization</code> method we saw earlier, I will use the <code>AuthorizationOptions</code> parameter to call the <code>AddPolicy</code> method and register a new policy.</p>
+<p>{% gist 6d65a30047b5fdd4e295051f77d9f1ed  %}</p>
+<p>I mentioned earlier, that in order to make a new policy you need three things, a requirement, a handler and to configure the policy. I've done the latter, now I need the requirement and its handler.<br />
+I could do them separately, but I have the ability to combine them in one class, by inheriting from <code>AuthorizationRequirement&lt;TRequirement&gt;</code><strong>and</strong> implementing the <code>IAuthorizationRequirement</code> interface.<br />
+That said, I created a single class and I named it<code>AgeRestrictionRequirement</code>,and got to inherit and implement from the aforementioned objects.</p>
+<p>{% gist 384c6c82fe68735ecbab643ff1432af1  %}</p>
+<p>Based on the above, we have a handler that itself is the requirement, passing the <strong>actual</strong>requirement in the constructor, which is the minimum age.<br />
+In <code>HandleRequirementAsync</code>, I am testing against that requirement, by first fetching the date of birth claim. Notice that if the <code>dateOfBirth</code> is non-existent (<code>null</code>), the method returns, which means the policy has failed, but this is a <em>soft</em> fail, compared to a <em>hard </em>bycalling the <code>Fail</code> method. If the test against the age is successful, then a call to the <code>Succeed</code> method commences. Notice that you need to pass the requirement along with this method.</p>
+<h3>View based authorization</h3>
+<p>There are sometimes that you want to hide specific UI elements. You might want these elements to be visible to certain users, ones that have the appropriate claims or fulfill a certain authorization policy. Of course, this is not a way to secure an application, rather its a way to provide a better UX for your users.</p>
+<p>In order to hide and show elements in Razor, based on authorization policies, you need an instance of the <code>IAuthorizationService</code> in your views. You can either <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/views/dependency-injection">inject</a> that service in your view or inject it in<code>_ViewImports.cshtml</code>to make it globally accessible. In this demo, I've injected it in <code>_ViewImports</code></p>
+<p>{% gist fa9af06d9b6ec9335638368fbae1857f  %}</p>
+<p>Now, I want to show/hide a menu item in <code>_Layout.cshtml</code>, based on a policy. I will use the<code>AuthorizationService</code> and call its <code>AuthorizeAsync</code> method. This will tell me if the authorization is successful or failed for that user. If it is successful, then I will be able to show the menu item, else it stays hidden.</p>
+<blockquote><p>Checks if a user meets a specific authorization policy against the specified resource.</p>
+<p>Returns aflag indicating whether policy evaluation has succeeded or failed. This valueis true when the user fulfills the policy, otherwise false.</p></blockquote>
+<p>{% gist 68adcb9de3a081327db627dccbcd6e35  %}</p>
+<p>This method is asynchronous, so be sure to <code>await</code> it. The returned value is of type <code>AuthorizationResult</code>, which has two public properties</p>
+<ul>
+<li>Succeeded, which is a <code>bool</code>.</li>
+<li>Failure, which is of type <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.authorization.authorizationfailure?view=aspnetcore-2.0">AuthorizationFailure</a>.</li>
+</ul>
+<p>It requires a <code>ClaimsPrincipal</code> user object and has various overloads for the rest of its parameters, though in my case, I prefer the overload that contains a policy name string as a third parameter. This overload validates the user against the specified policy.</p>
+<p>Next step is to create that policy, so firstly, I will add that authorization policy in <code>ConfigureServices</code>.</p>
+<p>{% gist 96fca16c95801498ee059fd86d0a7ee5  %}</p>
+<p>The <code>Policies.DomainRestriction</code> is a constant with a value of<code>"DomainRestriction"</code>.<br />
+I also fetch some configuration data from<code>appsettings.json</code>.</p>
+<p>{% gist 7cbb56db452a70c8678afa09b964063f  %}</p>
+<p>This lists the allowed domains which are passed as a list in requirement's constructor.<br />
+Like in the previous example, I created a class which is both a handler and a requirement.<br />
+This requirement allows access only to users with email addresses which are in a specific domain, for example, this email address <em>myemail@customDomain.com</em> is not valid as the domain is not in the list of the allowed domains we saw earlier, but <em>myemail@gmail.com</em> is valid and the policy will succeed in this case.</p>
+<p>{% gist 9229bc8ac5e7da84f645fd22c15b6984  %}</p>
+<p>This handler succeeds only when user's email address domain is listed in the allowed domains.</p>
+<h3>Complex authorization policies</h3>
+<p>Finally, I will talk about setting up complex authorization policies. You might want to use multiple handlers on a requirement, like in this example, I want to be able to allow or deny access to a user based on his/her role (admin, author, moderator, anonymous) and his/her account freeze status. I would like to evaluate role requirements in an OR basis, whereas the freeze status in an AND (like) basis. If user account is frozen, then the policy fails.<br />
+To recap, I have a blog and this blog has some members and each member has a role, which is admin, author or moderator. These roles have access to the admin panel. Anonymous users cannot access the admin panel at all. A member can have his/her account freeze, which means that particular individual will not have access to admin panel anymore.<br />
+I'd like to start from setting the requirements first, then I will go to handlers and finally, I will show the configuration.</p>
+<p>I start first by defining a <code>BlogAccessRequirement</code>, which is an empty marker class that implements the <code>IAuthorizationRequirement</code>. Reason behind that is that I want to add a single requirement and have multiple handlers use that requirement, but I am not interested particularly in specific data.</p>
+<p>{% gist 942b596fa89c1abaf965e7952539e4d5  %}</p>
+<p>Now, I will create a handler for each role (admin, author, moderator), in order to have independent business logic for each one. That is the recommended best practice, it is better to have handlers that conform with the <a href="http://www.oodesign.com/single-responsibility-principle.html">single responsibility principle</a>, doing one thing, like in this case different handlers for each role and for the account freeze status.</p>
+<p>{% gist 01dd80fdb543f3f530011e8cd99a14d2  %}</p>
+<p>Then comes the handler for the author</p>
+<p>{% gist 663186d469868ff47b3d3f5fbf4b4c98  %}</p>
+<p>And finally, the handler for the moderator role</p>
+<p>{% gist 629dda44ae238ebff52d6d1fb54455ec  %}</p>
+<p>All these are pretty much similar and simple handlers, they just verify if the user is in a role. If user is in role, the handler succeeds, else it fails <em>soft</em>. But, one handler failing does not mean the policy will fail overall, another might succeed and this will mean the policy as a whole will succeed as well, so if one of them succeeds, then the policy is successful.<br />
+Next up, is the account freeze handler, which checks if an account is frozen. This is slightly more complex handler.</p>
+<p>{% gist a84d1f3879c3fd72744b4d5978c0c27d  %}</p>
+<p>I inject a service in this handler in order to be able to communicate with the data store and fetch the persisted blog members.<br />
+In order to verify if the account is frozen, I call the <code>FindMemberByUserNameAsync</code>,passing the authenticated user's username. If the account is not frozen, then the policy will fail <em>softly</em>, otherwise, the policy fails <em>hard</em>, preventing further handlers from executing for this requirement. Because I call the <code>Fail</code> method here, this policy will fail no matter what, even if a previous handler has succeeded. But why I left the policy to fail softly and not call the <code>Succeed</code> method? I did this because other handlers are running also for this requirement. If one of them succeeds, then it's fine. But if I called <code>Succeed</code> here, I would allow access to other roles as well, for example member's of <em>Guest</em> role. So, I leave the other handlers to handle access for specific roles, while this one is only failing hard in case the account is frozen.</p>
+<p>For more info on services, repositories and database items, please look at the source code on <a href="https://github.com/gdyrrahitis/bpost-aspnetcore-local-logins/tree/authorization-policies">Github</a>.</p>
+<p>Final piece in this puzzle, is the authorization policy configuration in <code>ConfigureServices</code>. I have to add that requirement in authorization options, but I also have to register all the <code>Blog*</code> handlers in DI container, as instances of<code>IAuthorizationHandler</code>.</p>
+<p>{% gist 7efa0bd54cb4fec8a1b971dd4ffc7532  %}</p>
+<p>Securing actions remains the same as with previous examples, just use the <code>Authorize</code> attribute and specify the policy name to match the one registered.</p>
+<p>{% gist cd6f8e9e172051fe5d73467e0356ad6a  %}</p>
+<h2>Summary</h2>
+<p>In this post, we've gone through authorization policies in ASP.NET Core. We've seen what a requirement is, the handler's role and how to stitch them all together.</p>
+<p>We've gone through some examples, starting from defining a simple requirement, which can be created by defining a new class that implements <code>IAuthorizationRequirement</code> and inhertis from <code>AuthorizationHandler&lt;T&gt;</code>, with <code>T</code> being the requirement class. In this simple case, the same class is the requirement and the handler.<br />
+For view-based authorization, you learned that you need to inject the <code>IAuthorizationService</code> in a view or the <code>_ViewImports.cshtml</code> view. Using the <code>AuthorizeAsync</code> method, you can hide/show UI elements based on user's identity.<br />
+Finally, you learned also how to use a single requirement in multiple handlers, by creating a requirement class that implements the <code>IAuthorizationRequirement</code> and having multiple handlers for different types of authorization. You should register all handlers in DI as<code>IAuthorizationHandler</code>.</p>
+<p>Next up, I will talk about social logins.</p>
+<hr />
+<p>This post is part of the <em>ASP.NET Core 2.0 Authentication series</em>.</p>
+<ol>
+<li><a href="https://wp.me/p7uERY-85">ASP.NET Core 2.0 Cookie Authentication - Local logins</a></li>
+<li><a href="https://wp.me/p7uERY-aP">ASP.NET Core 2.0 Authentication with local logins - Implementing claims transformation</a></li>
+<li><a href="https://wp.me/p7uERY-aX">ASP.NET Core 2.0 Authentication with local logins - Responding to backend changes</a></li>
+<li><a href="https://wp.me/p7uERY-aV"><strong>ASP.NET Core 2.0 Authentication with local logins - Implementing custom authorization policies</strong></a></li>
+<li><a href="https://wp.me/p7uERY-9V">ASP.NET Core 2.1 Authentication with social logins</a></li>
+<li><a href="https://wp.me/p7uERY-aR">ASP.NET Core 2.0 Authentication with social logins - Implementing a profile store</a></li>
+<li><a href="https://wp.me/p7uERY-ib">ASP.NET Core 2.0 Authentication with Azure Active Directory</a></li>
+<li><a href="https://wp.me/p7uERY-aT">ASP.NET Core 2.0 Authentication with Azure Active Directory B2C</a></li>
+<li>ASP.NET Core 2.0 Authentication, IdentityServer4 and Angular</li>
+</ol>

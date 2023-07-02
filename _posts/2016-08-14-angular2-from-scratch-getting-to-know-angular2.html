@@ -1,0 +1,398 @@
+---
+layout: post
+title: Angular2 from Scratch - Getting to know Angular2
+date: 2016-08-14 16:26:08.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- Angular
+tags: []
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _publicize_job_id: '27680466836'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2016/08/14/angular2-from-scratch-getting-to-know-angular2/"
+---
+<p>In this post, we are going to focus on some pretty basic stuff, like setting up the application and getting it working. Posts will become more advancedduring the series progress. Feedback is always appreciated, so please, if you have any thoughts on how this and future posts can be improved, leave your comments below.</p>
+<h3><strong>Who is this article for</strong></h3>
+<p>If you are a beginner on Angular2, if the framework is something new for you and you wishto learn moreabout it,this is the article for you. We are going to setup Angular2 with TypeScript on VSCode, getting a very basichello world application.<br />
+<!--more--></p>
+<p><span style="text-decoration:underline;"><em><strong>Article is updated to follow latest Angular2 final version.</strong></em></span></p>
+<h3><strong>Prerequisites</strong></h3>
+<p>Regarding tooling, you will need to have installedNodeJS, NPM, VSCode and TypeScript.</p>
+<p>In order to better understand the concepts on Angular2, a minimal knowledge on JavaScript and TypeScript is required.</p>
+<p>So, make sure you have NodeJS installed on your machine first. If not, find it <a href="https://nodejs.org/en/">here</a>.</p>
+<p>Then, make sure you have NPM installed.NPM ships with NodeJS, so if you have it, then you have NPMas well in your machine. Make sure you gotthe latest by running the following command in a CMD window:</p>
+<p><code>npm install npm -g</code></p>
+<p>Finally make sure you have TypeScript...</p>
+<p><code>npm install typescript -g</code></p>
+<p>... and<a href="https://www.visualstudio.com/en-us/products/code-vs.aspx">VSCode </a>installed.</p>
+<h3><strong>The Angular2 movement</strong></h3>
+<p>Angular2 (yes, no AngularJS 2, just Angular2) is the new kid in the block, in SPA frameworks. It comes sexiest than ever, faster, powerful, cleaner, it is really the dreamlandfor a web developer. It comes with support in ES6, TypeScript and Dart.</p>
+<p>Careful though. This is a framework that is designed (until this time of writing at least) to be a solely SPA framework, so if you are considering an SPA application, yes this is the way to go. I mean,really, give it a try, you are going to love it.<br />
+If not, you are probably planning to span the framework across pages, having a non-SPA application, so this framework is not meant for your. This could be done with the previous AngularJS, or Backbone.js, to havethe app module, lets say in AngularJS, and use it in different pages to register controllers, which doesn'tuse the routing feature though. I don't find a very good reason to do so, but I am here to warn you.<br />
+This is a <a href="https://www.reddit.com/r/Angular2/comments/424nwn/using_angular_2_without_it_being_a_single_page_app/">reddit discussion</a> on the matter, where some hacks are introduced, but I wouldn't recommend that. If the guys at Google wanted you to do so, they would have included it, so try to stick around with the framework.</p>
+<h3><strong>What's new comparing to AngularJS?</strong></h3>
+<p>This will be a brief introduction in Angular2 vs AngularJS, as this can be a very lengthy section, which fits on its own article.</p>
+<p>First, performance. Angular2has made significant refactoring on the framework, compared to the previous version, such as killing off watchers and digest cycles. From this you can understand how much pain you are saved from, because, yes, lets admit it, it was pain, which needed extra consideration as well as performance tuning. If you are not familiar with tuning techniques on AngularJS, check this <a href="https://www.youtube.com/watch?v=LoIuokh6NUI">amazing presentation</a> by Todd Motto, which I had the pleasure to watch it live (streaming). Thanks Todd!</p>
+<p>Next, tooling. Angular2 is build on top of TypeScript, so you can leverage its great power to build unique, clean and robust code. Your code is modularized, truly this time, with individual entities, such as components, services, directives, ready to be consumed as modules. You declare your modules, export them to make them visible to the application, and of course import them where you need them. Boom! Code is ready to be used. TypeScipt supports many module loading techniques, such as CommonJS, AMD and others. Check the <a href="https://www.typescriptlang.org/docs/handbook/modules.html">modules section</a> on TypeScript documentation for more on the subject, as well as this incredible article from Addy Osmani on <a href="https://addyosmani.com/writing-modular-js/">Modular JavaScript</a>.<br />
+IDE's today havevery good support on Angular2, like VSCode, Atom, Sublime, Webstorm, etc. You must be wondering why I didn't include Visual Studio 2015. Read on <strong>Tips</strong> section below.</p>
+<p>Also,universal apps are possible through Angular2. The framework is not focused on Web Applications, like the previous one, which was designed only to support responsive web applications,instead it has a wide range of devices support, as well as creating mobile applications, with <a href="https://www.nativescript.org/">NativeScript </a>and <a href="https://facebook.github.io/react-native/">ReactNative</a>.</p>
+<p>Last, but not least in this quick brief intro to Angular2, isforget about controllers, forget about factories, providers, directives, as everything is a component now. Yes, Angular2 is following the steps of React on componetizing the UI and it is doing a great job. Forget setting a controller and working with <code>$scope</code>, no more. Now you have the power to construct your designs, extracting small components on functionality throughout your UI, something that was not that straightforward in the previous framework, or was too cumbersome with Backbone.js and Marionette.js (it was kinda similar in mindset).</p>
+<h3>Walkthrough</h3>
+<p>Let's first show the structure we are going to create and then move on with the walkthrough.</p>
+<pre class="prettyprint lang-text"><code>|-css
+|----style.css
+|-src
+|----app
+|--------home.component.css
+|--------home.component.html
+|--------home.component.ts
+|--------app.component.cs
+|--------app.component.html
+|--------app.component.ts
+|--------app.module.ts
+|--------main.ts
+|-index.html
+|-package.json
+|-system-config.js
+|-tsconfig.json
+|-typings.json</code></pre>
+<p>Pretty basic setup, a package.json to fetch all NPM modules we need, a tsconfig.json to provide instructions to the TypeScript compiler, a typings.json to provide some TypeScript definitions, a system-config.js to configure SystemJS module loader, an index.html as the default document of the application and in the src folder we have all the Angular2 specific code. In css folder we just have someglobal CSSstyles.</p>
+<p>Main.ts isresponsible for bootstraping the Angular2 application by loadingthe application module, which is the <code>AppModule</code> class. This loads all the underlying components as well as the root<code>AppComponent.</code><br />
+App.component.ts is the main component, whichhosts all components in the Angular2 application, so think about it as a master component, the root of all components. These three, app.module.ts,main.ts and app.component.ts are the minimum requirementsin every Angular2 application you build.</p>
+<p>home.component.ts will be just a hello world component for the sake of this walkthrough. As you can see, allrelated to component resources (*.css, *.html) are component specific, so we have component specific CSS and HTML code, which serves as its template.</p>
+<p><em>Make sure to add all the above folder and files, and we are going to talk about their implementation in the next sections.</em></p>
+<p>Let's go throughall the necessary steps for creating this basic application.</p>
+<p><strong>VSCode</strong></p>
+<p>Go to your file system and create a new folder, for the application. Name it <strong>Angular2FromScratch.</strong></p>
+<p>Open VSCode now, go to menu File &gt; Open Folder and navigate to the folder you just created.</p>
+<p><strong>package.json</strong></p>
+<p>We need to install all the required dependencies for the application. On VSCode press <code>Ctrl + Shift + C</code>to open a Command Prompt Window. There, type <code>npm init</code> to create the package.json. Answer to the questionnaire and when its finished, pastethe following code:</p>
+<pre class="prettyprint"><code>&quot;dependencies&quot;: {
+    &quot;@angular/common&quot;: &quot;2.0.0-rc.6&quot;,
+    &quot;@angular/compiler&quot;: &quot;2.0.0-rc.6&quot;,
+    &quot;@angular/core&quot;: &quot;2.0.0-rc.6&quot;,
+    &quot;@angular/platform-browser&quot;: &quot;2.0.0-rc.6&quot;,
+    &quot;@angular/platform-browser-dynamic&quot;: &quot;2.0.0-rc.6&quot;,
+    &quot;systemjs&quot;: &quot;0.19.27&quot;,
+    &quot;core-js&quot;: &quot;^2.4.0&quot;,
+    &quot;reflect-metadata&quot;: &quot;^0.1.3&quot;,
+    &quot;zone.js&quot;: &quot;^0.6.17&quot;,
+    &quot;rxjs&quot;: &quot;5.0.0-beta.11&quot;,
+    &quot;bootstrap&quot;: &quot;^3.3.6&quot;
+  },
+  &quot;devDependencies&quot;: {
+    &quot;lite-server&quot;: &quot;^2.2.2&quot;,
+    &quot;concurrently&quot;: &quot;^2.2.0&quot;,
+    &quot;typescript&quot;: &quot;^1.8.10&quot;,
+    &quot;typings&quot;: &quot;^1.3.2&quot;
+  },</code></pre>
+<p>Just be sure tooverwrite the <code>scripts</code> section with the one above, so you can have the web-server ready to run, as well ascompiling your TypeScript code through the commands. The <code>tsc</code> command compiles the TypeScript files in your application, whereas the <code>tsc -w</code> command compiles them and watches for changes, recompiling if needed.<br />
+The <code>lite-server</code> command kicks-offthe lite web server, running andhosting the application.</p>
+<p>So, regarding the libraries, these are the minimum required for this simple application. Angular2 haspackages for different framework features, so everything is modular, we have a core package, with core functionality, like Components, we have an Http package to providecommunication throughthe network by the use of HTTP providers, etc.</p>
+<p><strong>tsconfig.json</strong></p>
+<p>Next is the tsconfig.json to set, in order to provide somecompiler instructions. Paste the following code in this file.</p>
+<pre class="prettyprint"><code>{
+    &quot;compilerOptions&quot;: {
+        &quot;target&quot;: &quot;es6&quot;,
+        &quot;module&quot;: &quot;commonjs&quot;,
+        &quot;moduleResolution&quot;: &quot;node&quot;,
+        &quot;sourceMap&quot;: true,
+        &quot;emitDecoratorMetadata&quot;: true,
+        &quot;experimentalDecorators&quot;: true,
+        &quot;removeComments&quot;: false,
+        &quot;noImplicitAny&quot;: false
+    },
+    &quot;exclude&quot;: [
+        &quot;node_modules&quot;
+    ]
+}</code></pre>
+<p>We instruct the compiler the following:</p>
+<ul>
+<li>UseES6 as ECMAScript target version.</li>
+<li>Use commonjs as module code generationtechnique.</li>
+<li>Use node as module resolution strategy.</li>
+<li>Generatesource maps.</li>
+<li>Emit design-type metadata for decorated declarations in source.</li>
+<li>Use the expirimental decorators.</li>
+<li>Remove comments from the generated .js files.</li>
+<li>Warn on expressions or declarations that use<code>any</code></li>
+</ul>
+<p>Lastly, we exclude certain directories from the compilation process.</p>
+<p><strong>typings.json</strong></p>
+<p>Paste the following code in typings.json.</p>
+<pre class="prettyprint"><code>{
+    &quot;globalDependencies&quot;: {
+        &quot;core-js&quot;: &quot;registry:dt/core-js#0.0.0+20160317120654&quot;,
+        &quot;node&quot;: &quot;registry:dt/node#4.0.0+20160509154515&quot;
+    }
+}</code></pre>
+<p>Or alternatively open the terminal (Ctrl+`) and type the following:</p>
+<p><code>typings install --save --global dt~core-js</code></p>
+<p><code>typings install --save --global dt~node</code></p>
+<p><strong>Install dependencies</strong></p>
+<p>Now,go to the CMD you have open (if not, press<code>Ctrl + Shift + c</code>) and type<code>npm install</code>. This will install all the dependencies and devDependencies you have on package.json.</p>
+<p>When this operation is completed, we can proceed in creating the index.html, the systemjs-config.js and the rest Angular2 code.</p>
+<p><strong>index.html</strong></p>
+<pre class="prettyprint"><code>&lt;!DOCTYPE&gt;
+&lt;html lang=&quot;en&quot;&gt;
+
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot; /&gt;
+
+    &lt;!-- for ie to work with edge simulation --&gt;
+    &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot; /&gt;
+
+    &lt;!-- Fixes viewport zoom on smaller devices --&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot; /&gt;
+
+    &lt;title&gt;Angular2 From Scratch&lt;/title&gt;
+
+    &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;css/styles.css&quot; /&gt;
+
+    &lt;!--Dependencies. Required to load--&gt;
+    &lt;script src=&quot;node_modules/core-js/client/shim.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;node_modules/zone.js/dist/zone.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;node_modules/reflect-metadata/Reflect.js&quot;&gt;&lt;/script&gt;
+   
+    &lt;!--Module loader--&gt;
+    &lt;script src=&quot;node_modules/systemjs/dist/system.src.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;systemjs-config.js&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        System.import(&quot;app&quot;).catch(function(err) { console.log(err); });
+     &lt;/script&gt;
+   &lt;/head&gt;
+
+&lt;body&gt;
+    &lt;div class=&quot;container&quot;&gt;
+        &lt;h1 class=&quot;main-title&quot;&gt;Welcome to Angular2!&lt;/h1&gt;
+            &lt;!--Using AppComponent's selector. Angular2 is running--&gt;
+            &lt;app-component&gt;Application is loading...&lt;/app-component&gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+
+&lt;/html&gt;</code></pre>
+<p>In order for our Angular2 app to be up and running, we need to add some dependencies, which are the core-js shim, the zone.js and Reflect.js. After that, we can provide our systemjs configuration, with the Angular2 and Rx.jsscripts.</p>
+<p>The app-component selector, is the template of app.component.ts component. We'll see more about that in a moment.</p>
+<p><strong>systemjs-config.js</strong></p>
+<pre class="prettyprint"><code>(function (global) {
+
+    // Where to look for packages
+    var map = {
+        &quot;app&quot;: &quot;src&quot;,
+        &quot;@angular&quot;: &quot;node_modules/@angular&quot;,
+        &quot;rxjs&quot;: &quot;node_modules/rxjs&quot;
+    };
+
+    // What to do when no filename and/or no extension exists
+    var packages = {
+        &quot;app&quot;: { main: &quot;main.js&quot;, defaultExtension: &quot;js&quot; },
+        &quot;rxjs&quot;: { main: &quot;Rx.js&quot;, defaultExtension: &quot;js&quot; }
+    };
+
+    // Angular2 package names, as they are in node_modules/@angular/ directory
+    var ngPackageNames = [
+        &quot;common&quot;,
+        &quot;compiler&quot;,
+        &quot;core&quot;,
+        &quot;platform-browser&quot;,
+        &quot;platform-browser-dynamic&quot;
+    ];
+
+    // Mapping angular2 packages
+    function packageUmd(packageName) {
+        packages[&quot;@angular/&quot; + packageName] = { main: &quot;/bundles/&quot; + packageName + &quot;.umd.js&quot;, defaultExtension: &quot;js&quot; };
+    };
+
+    // Set UMD packages (for this sample project, in order to be safe with other environments like Karma, we should use the index as well)
+    ngPackageNames.forEach(packageUmd);
+    var config = {
+        map: map,
+        packages: packages
+    };
+
+    System.config(config);
+})(this);</code></pre>
+<p>In this file, we provide configuration to SystemJS, on how to resolve imports (remember, SystemJS is a module loader, we need to tell it where it can find all the required packages/dependencies).<br />
+Comments provide useful information, so we won't say much about this file. You need to remember only that map maps configurations so you can be able to locate packages. The packages configuration gives you fine-grain control on modules. The main property is the entry JavaScript file to lookunder module directory, while the defaultExtension defines the extension this module will have if it is not defined in any import.<br />
+We locate all angular2 packages underbundles folder, which is located in each package directory. Ultimately, we are interested in the &lt;package_name&gt;.umd[.min].js file, which is exactly what we are loading at the moment.</p>
+<p>Lastly, before we go into the Angular2 code, we need to add the styles.css file in css directory. So add this file, with the following code:</p>
+<pre class="prettyprint"><code>.container {
+    background-color: #555;
+    padding: 15px;
+}
+
+.main-title {
+    color: #ddd;
+}
+
+.greeting {
+    display: inline-block;
+    padding: 35px;
+}
+
+.loader {
+    color: #fff;
+    font-weight: 300;
+    font-size: 16px;
+}</code></pre>
+<p>&nbsp;</p>
+<h4>Angular2<strong> code</strong></h4>
+<p><strong>app.module.ts</strong></p>
+<pre class="prettyprint"><code>import { BrowserModule } from &quot;@angular/platform-browser&quot;;
+import { NgModule } from &quot;@angular/core&quot;;
+import { AppComponent } from &quot;./app.component&quot;;
+import { HomeComponent } from &quot;./app/home.component&quot;;
+
+@NgModule({
+    imports: [BrowserModule],
+    declarations: [AppComponent, HomeComponent],
+    bootstrap: [AppComponent]
+})
+export class AppModule { }</code></pre>
+<p>First, we add the application module, as every Angular application has at least one module class. Modules are very handy and help a lot to organize an application into cohesive blocks of functionality. To create a module, you need to import the <code>NgModule</code> decorator from <code>@angular/core</code>. Then you create a class, named AppModule here, which is decorated by NgModule. In this decorator, we register all the components in <code>declarations</code> property. If we had any services, we'd register them in <code>providers</code> property. Angular2 dependency injection takes care of the rest, so you don't need to register you components/directives/services/pipes in components anymore, everything is going into you module.</p>
+<p>In <code>imports</code> property we inject other modules whose exposed classes are needed by component templates declared in this very module.<code>BrowserModule</code> is loaded here, which is a module every browser application must import. It registers critical application service providers and includes common directives. All these become immediately available and usable in any component this module contains.</p>
+<p>Lastly, the <code>bootstrap</code> property identifies the application component or AppComponent as the bootstrap component, so Angular launches the application with this component serving as the root.</p>
+<p><strong>main.ts</strong></p>
+<p>In main.ts we do the application bootstraping. Main.ts (ultimately main.js) is the main entry point to our application, something we defined already in systemjs-config.js (main.js is mapped to "app" module).</p>
+<p>We need the <code>platformBrowserDynamic</code>method, which is located under <code>platform-browser-dynamic</code> module, surprisingly, as many people would think that this is a core module. The thing is that bootstraping in Angular2 is platform specific, like bootstraping Angular2 from another environment like Apache Cordova, which requires a different kind of bootstrap function, as well as different library to be imported. Also, we importthe <code>AppModule</code>component, which is something we've created.</p>
+<p><code>After we execute the platformBrowserDynamic() method, it returns a PlatformRef,</code>so we can call the<code>bootstrapModule</code>method that takes an <code>NgModule</code> as inputandreturns a<code>Promise</code>. If the moduleis loaded, success kicks-in, else error handler is called.</p>
+<pre class="prettyprint"><code>import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { AppModule } from './app.module';
+
+
+platformBrowserDynamic().bootstrapModule(AppModule).then(
+    success =&gt; console.log('AppComponent bootstrapped! Angular2 is running!'),
+    error =&gt; console.log(error)
+);</code></pre>
+<p>Take note that the app.module.ts is in the same directory as the main.ts. Be careful with the module paths, as this can sometimes be confusing. We have defined a module resolution strategy already in tsconfig.json. Look the imported module from the current directory (the file's directory), you don't need to use absolute paths or anything like that.</p>
+<p><strong>app.component.ts</strong></p>
+<p>In app.component.ts we need to create a <code>Component</code>. We are going to name it<code>AppComponent</code>. This component will have its template, as well style (app.component.html, app.component.css), as well asa child component (home.component).</p>
+<p>Code:</p>
+<pre class="prettyprint"><code>import { Component, OnInit } from '@angular/core';
+import { HomeComponent } from &quot;./app/home.component&quot;;
+
+@Component({
+    moduleId: module.id,
+    selector: 'app-component',
+    templateUrl: './app.component.html',
+    styleUrls: [&quot;./app.component.css&quot;]
+})
+export class AppComponent implements OnInit {
+    message: string;
+
+    constructor() { }
+
+    ngOnInit() {
+        this.message = &quot;Hello from AppComponent!&quot;;
+    }
+}</code></pre>
+<p>As you can see, a component hasa very simple structure.<br />
+First, we have the imports, which are modules imported in our component.<br />
+Next we have the metadata, which is the <code>@Component</code> decorator declaration. This essentially describes the component.<br />
+Finally, we have the component definition, the class itself, in this case the <code>AppComponent</code> class, which goes with its implementation, of course.</p>
+<p>We import <code>Component</code> and <code>OnInit</code> interface from <code>@angular/core</code> module.<br />
+<code>Component</code> is a decorator, while <code>OnInit</code> is an interface, it implements the <code>ngOnInit</code> method, which kicks-off when the component is initialized (it runs after the constructor of course).</p>
+<p>Next we define all the metadata for the component. Let's take them one-by-one.</p>
+<ul>
+<li>moduleId. We set it to <code>module.id</code>, which is the fully resolved filename, defined at module load time. Defining it, we canreference *.css, *.html files in component, for <code>templateUrl</code> and <code>styleUrls</code>, in a relative manner. Now we don't see this in app.component.ts, but I will show you what happens in home.component.ts later. Just be sure you have <code>commonjs</code> set as module in tsconfig.json. There is different approach on systemjs module or webpack, which we will discuss in another post.</li>
+<li>selector. The name of the selector of the component. Remember the index.html with the <code>&lt;app-component&gt;</code> element? This is the<code>AppComponent</code> selector, so essentially, the template of the <code>AppComponent</code> will render.</li>
+<li>templateUrl. We provide the pathfor the .html template file. It is just a string.</li>
+<li>styleUrls: We provide in an array, all the paths for the .css files.</li>
+</ul>
+<p>We name the class<code>AppComponent</code> and we make sure we export it as a module, so other files can access it (like the main.ts which imports <code>AppComponent</code>).</p>
+<p>In class body, we just set the value of the<code>message</code> property.<br />
+Let's go the app.component.html to see how we render the message.</p>
+<p><strong>app.component.html</strong></p>
+<pre class="prettyprint"><code>&lt;div class=&quot;greeting-outer&quot;&gt;
+    &lt;h2&gt;{{message}}&lt;/h2&gt;
+    &lt;home-component&gt;&lt;/home-component&gt;
+&lt;/div&gt;</code></pre>
+<p>Nothing new here, just normal string interpolation, we put the message (the property we wish to render) into double braces {% raw %}<code>{{}}</code>{% endraw %}.<br />
+Below, we have the <code>&lt;home-component&gt;</code> directive. Notice its usage. We didn't define anything in AppComponent, yet we can use the HomeComponent markup.Themetadata become available from the application module, in which weregistered the HomeComponent component. If we hadn't registered it there (in declarations property) the code above would throw an error, indicating it cannot find the <code>&lt;home-component&gt;</code> directive.</p>
+<p><strong>app.component.css</strong></p>
+<p>Standard CSS code for this file, no need to get into this, just paste the following code:</p>
+<pre class="prettyprint"><code>.greeting-outer {
+    color: #666;
+    background-color: #bbb;
+    font-weight: 300;
+    display: block;
+    padding: 35px;
+}</code></pre>
+<p><strong>home.component.ts</strong></p>
+<p>For the home.component.ts we work in the same fashion with the app.component.ts, by getting the<code>Component</code> and<code>OnInit</code> interface. Next, we define the metadata and lastly, we define the class and its body. Let's see it.</p>
+<pre class="prettyprint"><code>import { Component, OnInit } from &quot;@angular/core&quot;;
+
+@Component({
+    moduleId: module.id,
+    selector: &quot;home-component&quot;,
+    templateUrl: &quot;./home.component.html&quot;,
+    styleUrls: [&quot;./home.component.css&quot;]
+})
+export class HomeComponent implements OnInit {
+    message: string;
+
+    ngOnInit() {
+        this.message = &quot;... and this is the HomeComponent, hello from here too!&quot;;
+    }
+}</code></pre>
+<p>Nothing new here, we just set a message on the<code>message</code> property, which will be rendered in home.component.html.</p>
+<p>That's the power of components in Angular2. We can have infinite components in our UI, which can be children of the parent component, from them builda structure, with each one being responsible forindividual operations, promoting componentreuse.</p>
+<p>Take a look at<code>templateUrl</code> and<code>styleUrls</code> properties. If we haven't defined the<code>moduleId</code> to be<code>module.id</code> we would get a <code>404 Not Found</code> error for the .html and .css files. So we should define a path from the root of our application, which is the<code>app</code>, essentially where the main.ts resides.<br />
+Thanks to that though we are defining the resources in a relative manner.</p>
+<p><strong>home.component.html</strong></p>
+<p>Nothing special with the<code>HomeComponent</code> template.</p>
+<pre class="prettyprint"><code>&lt;div class=&quot;greeting-inner&quot;&gt;
+    &lt;h3&gt;{{message}}&lt;/h3&gt;
+&lt;/div&gt;</code></pre>
+<p><strong>home.component.css</strong></p>
+<p>Finishing with the styling for the<code>HomeComponent</code> template.</p>
+<pre class="prettyprint"><code>.greeting-inner {
+    background-color: #ccc;
+    display: inline-block;
+    padding: 35px;
+    color: initial;
+}</code></pre>
+<p>&nbsp;</p>
+<p><strong>Application is ready</strong></p>
+<p>Everything is in place, so if you have followed along,you are now ready to run the application in the browser. Open a CMD (<code>Ctrl + Shift + c</code>) and type the following:</p>
+<p><code>npm start</code></p>
+<p>This will kick-off the lite web-server and, of course, the application itself.<br />
+Essentially, you are going to get this as a result.</p>
+<p><a href="{{ site.baseurl }}/2016/08/screenshot_1.png"><img class="alignnone wp-image-47 size-large" src="{{ site.baseurl }}/assets/2016/08/screenshot_1.png?w=840" alt="Screenshot_1" width="840" height="418" /></a></p>
+<h3>Some tips</h3>
+<p>For developing on VSCode, be sure to download <a href="https://github.com/johnpapa/vscode-angular2-snippets">Angular2 TypeScript Snippets</a>, by John Pappa. This can boost your productivity, when you are familiar with the bits and bolts of Angular2. Some of the snippets available in this extension:</p>
+<h4 id="typescript-snippets">TypeScript Snippets</h4>
+<pre><code class="lang-typescript">ng2-component-root  // Angular 2 root App component
+ng2-bootstrap       // Angular 2 bootstraping, for main.ts
+ng2-component       // Angular 2 component
+ng2-pipe            // Angular 2 pipe
+ng2-route-config    // Angular 2 @RouteConfig
+ng2-route-path      // Angular 2 routing path
+ng2-service         // Angular 2 service
+ng2-subscribe       // Angular 2 observable subscription
+</code></pre>
+<h4 id="html-snippets">HTML Snippets</h4>
+<pre><code class="lang-html">ng2-ngClass
+ng2-ngFor
+ng2-ngIf
+ng2-ngModel
+ng2-routerLink
+ng2-ngStyle
+ng2-ngSwitch</code></pre>
+<h4><strong>Visual studio 2015</strong></h4>
+<p>If you intend to use VS 2015 to create an Angular2 application, just think about it twice. I had many problemssuchas looking for updates to resolve issues, like one with file indexing, which made VS 2015 crash if the node_modules folder was large enough.<br />
+For front-end code I would suggest go with VSCode, it just isn't that frustrating when developing, you don't want to be frustrated, do you?</p>
+<p>Another reason is the lack of the hot module replacement, I want to write code for my front-end and immidiatelly see the changes in browser, I do not want to rebuild the application (yes it happened to me and I spend 3-4 hours trying to find what was wrong with my configuration) or refresh the browser. For gods sake, we are in 2016, with lots of tools in our hands that do exactly thisjob, why to be primitive because of the VS 2015 tooling issues?</p>
+<p>Ah, and if you intend to use Angular-CLI with VS 2015 be prepared for the pain I mentioned above (VS 2015 super slow, crashes, etc.). The newest update partially resolved these issues, but it is not as fast as VSCode is.</p>
+<h3>Code</h3>
+<p>Download and play around with the code, which you can find on my <a href="https://github.com/gdyrrahitis/bpost-angular2-from-scratch">Github page</a>.</p>
+<p>Share your thoughts below and take care.</p>

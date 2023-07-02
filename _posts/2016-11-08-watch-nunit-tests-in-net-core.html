@@ -1,0 +1,138 @@
+---
+layout: post
+title: Watch NUnit tests in .NET Core
+date: 2016-11-08 23:15:24.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- ".NET Core"
+- C#
+tags:
+- Unit testing
+- NUnit
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _publicize_job_id: '28713297512'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2016/11/08/watch-nunit-tests-in-net-core/"
+---
+<p>In this post I am going to talk about writing unit tests in .NET Core with NUnit andwatch them for changes, re-running the test suite again, on the fly. Something you can have with NCrunch, but .NET Core has it for free.</p>
+<p><!--more--></p>
+<p>TLDR; Code repository can be found <a href="https://github.com/gdyrrahitis/dotnet-core-watch-nunit">here</a>.</p>
+<p>I really like <a href="https://www.microsoft.com/net/core#windows">.NET Core</a>. I've been playing around for some time now and enjoyed it. I find it very flexible, modular, you can work cross-platform, work with the CLI, etc., stuff you probably already know. I also writelots of tests. And I want automation for them.<br />
+Recently, I have been playing with <a href="http://www.ncrunch.net/">NCrunch </a>and I really like it, having a bunch of tests running automatically for me without relying on re-running the whole suite.<br />
+At the moment, I am still reading and learning from the NCrunch documentation and I'm getting more familiar with tool, which is very cool.</p>
+<p>But, .NET Core gives us a watch tool for free, which of course it is not as rich as NCrunch is, so you can call it NCrunch for the poor. You just need to download the<code>Microsoft.DotNet.Watcher.Tools</code>, run the command from the CLI and that's it.</p>
+<p>How you can run unit tests in.NET Core though? Simple, you need a test runner for <code>dotnet test</code> torun. Here are some various <code>dotnet-test-*</code> runners.</p>
+<ul>
+<li><a href="https://github.com/nunit/dotnet-test-nunit">dotnet-test-nunit</a>. Runner for the NUnit test framework.</li>
+<li><a href="https://github.com/xunit/dotnet-test-xunit">dotnet-test-xunit</a>. Runner for the XUnit test framework.</li>
+<li><a href="https://blogs.msdn.microsoft.com/visualstudioalm/2016/09/01/announcing-mstest-v2-framework-support-for-net-core-1-0-rtm/">dotnet-test-mstest</a>. Runner for the MSTest test framework.</li>
+</ul>
+<p>Note, that all therunners above are in prerelease stage, so when you look for them via NugetPackage Manager, make sure to tick the 'Include prerelease' checkbox.</p>
+<p>At the repository you will find a solution which has two.NET Core class library projects,the <code>Geometry</code>, which contains a class named <code>Triangle</code> to make a simple calculation on a triangle's areaand the <code>Geometry.Tests</code> project, which tests the <code>Triangle</code>class methods.</p>
+<p>To create a new project, you can do it either by using the CLI or Visual Studio. With CLI you type <code>dotnet new &lt;NAME.OF.PROJECT&gt;</code> on the folder where you want to place the project.</p>
+<p>But for this example, I am going to use just the VS 2015 IDE.</p>
+<p>So, in order to create a new .NET Core class library project, select File &gt; Add &gt; New Project. Select .NET Core &gt; Class Library (.NET Core) from the wizard.</p>
+<p><img class="alignnone size-large wp-image-368" src="{{ site.baseurl }}/assets/2016/11/newdotnetcoreproject.png?w=700" alt="newdotnetcoreproject" width="700" height="472" /></p>
+<p>The Geometry project is simple enough, the <code>project.json</code> file is the following, targeting the <code>netcoreapp1.0</code> framework node.</p>
+<pre class="prettyprint lang-text"><code>{
+  &quot;version&quot;: &quot;1.0.0-*&quot;,
+
+  &quot;dependencies&quot;: {
+    &quot;NETStandard.Library&quot;: &quot;1.6.0&quot;
+  },
+
+  &quot;frameworks&quot;: {
+    &quot;netcoreapp1.0&quot;: {
+      &quot;imports&quot;: &quot;portable-net45+win8&quot;,
+      &quot;dependencies&quot;: {
+        &quot;Microsoft.NETCore.App&quot;: {
+          &quot;version&quot;: &quot;1.0.0-*&quot;,
+          &quot;type&quot;: &quot;platform&quot;
+        }
+      }
+    }
+  }
+}</code></pre>
+<p>Class <code>Triangle</code> is trivial as well.</p>
+<pre class="prettyprint"><code>namespace Geometry
+{
+    public class Triangle
+    {
+        private const double Half = 0.5;
+
+        public double Area(double width, double height)
+        {
+            return width * height * Half;
+        }
+    }
+}</code></pre>
+<p>For the test project, I created a new Class Library, same way as previously. But, Idid some modifications on tooling and dependencies. All are reflected on the <code>project.json</code> file of the <code>Geometry.Tests</code> project.</p>
+<pre class="prettyprint"><code>{
+  &quot;version&quot;: &quot;1.0.0-*&quot;,
+
+  &quot;dependencies&quot;: {
+    &quot;dotnet-test-nunit&quot;: &quot;3.4.0-beta-3&quot;,
+    &quot;NETStandard.Library&quot;: &quot;1.6.0&quot;,
+    &quot;NUnit&quot;: &quot;3.5.0&quot;
+  },
+  &quot;testRunner&quot;: &quot;nunit&quot;,
+  &quot;tools&quot;: {
+    &quot;Microsoft.DotNet.Watcher.Tools&quot;: &quot;1.0.0-preview2-final&quot;
+  },
+  &quot;frameworks&quot;: {
+    &quot;netcoreapp1.0&quot;: {
+      &quot;imports&quot;: &quot;portable-net45+win8&quot;,
+      &quot;dependencies&quot;: {
+        &quot;Microsoft.NETCore.App&quot;: {
+          &quot;version&quot;: &quot;1.0.0-*&quot;,
+          &quot;type&quot;: &quot;platform&quot;
+        },
+        &quot;Geometry&quot;: &quot;1.0.0-*&quot;
+      }
+    }
+  }
+}</code></pre>
+<p>I downloaded the <code>NUnit</code> package, for the NUnit framework, as well as the <code>dotnet-test-nunit</code> runner for .NET Core. In order to have the runner compatible with the project, you need to target the framework node to<code>netcoreapp1.0</code>, else you will get errors on build. Ialso put the <code>Geometry</code> project reference under the <code>dependencies</code> node.</p>
+<p>To installthe watcher tool into project, use the <code>tools</code> section and download the package<code>Microsoft.DotNet.Watcher.Tools</code>. This will have all the required CLI tools to run the <code>dotnet watch ...</code> command.</p>
+<p>Lastly, I set the <code>testRunner</code> to <code>nunit</code> to specify NUnit 3 as the test adapter. Similarly with other frameworks you do the same, for XUnit you set it to <code>xunit</code>, for MSTest you set it to <code>mstest</code>.</p>
+<p>I wrote just one test for demonstration, which checks if the <code>Area</code> method truly returns a valid area for a triangle.</p>
+<p><em>The formula is <code>area = 1/2*base*height</code></em></p>
+<pre class="prettyprint"><code>namespace Geometry.Tests
+{
+    using NUnit.Framework;
+    using static NUnit.Framework.Assert;
+
+    [TestFixture]
+    public class TriangleTests
+    {
+        [Test]
+        public void Triangle_Area_OfSixBaseAndThreeHeight_IsNine_Test()
+        {
+            // Arrange
+            const double @base = 6;
+            const double height = 3;
+            var triangle = new Triangle();
+
+            // Act
+            var result = triangle.Area(@base, height);
+
+            // Assert
+            AreEqual(9.0d, result);
+        }
+    }
+}</code></pre>
+<p>In order to have the watcher running, open the test project folder and open a CMD window. Type <code>dotnet watch test</code> on that directory.</p>
+<p><img class="alignnone size-large wp-image-374" src="{{ site.baseurl }}/assets/2016/11/dotnetcoretestresults.png?w=700" alt="dotnetcoretestresults" width="700" height="368" /></p>
+<p>Whenever you make a change to your tests or yourcode under test, watcher will re-run the test suite.</p>
+<h2>Summary</h2>
+<p>Run your unit tests for .NET Core using the runner of your choice, but remember to do some configuration before jumping to tests.</p>
+<p>Also, note that the tooling isat prereleasestage, so expect to have problems from time to time. For example, a problem I had was that sometimes my VS 2015 crashed when running the watcher and made changes to <code>project.json</code> of a project.</p>

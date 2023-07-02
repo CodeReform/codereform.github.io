@@ -1,0 +1,154 @@
+---
+layout: post
+title: Socket.io integration tests with chai and mocha
+date: 2017-08-09 23:53:07.000000000 +01:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- JavaScript
+tags:
+- Jasmine
+- Socket.io
+- TDD
+- Typescript
+meta:
+  _edit_last: '75937724'
+  geo_public: '0'
+  _publicize_job_id: '8109701924'
+author:
+  display_name: George Dyrrachitis
+  first_name: George
+  last_name: Dyrrachitis
+permalink: "/2017/08/09/socket-io-integration-tests-with-chai-and-mocha/"
+---
+<p>Ah, all the goodies that you are building need to be of highest quality. But how is quality possible when no tests are in place?</p>
+<p>If you have followed along, this very website promotes test driven development, very passionately if you ask me. I want my code to be thoroughly tested, I want confidence, I want speed. Remember, test driven development is the practice that makes you agile, in terms of speedy development and ability to cope with the code's evolution. You go faster when you write tests.</p>
+<p>That is no different when we code real time applications, in this particular instance, with socket.io, which heavily relies on an event driven style. We need to make sure that our channels, our business rules and the wiring work properly and that is exactly the story that I am going to tell you, so let's dive in.</p>
+<p><!--more--></p>
+<h1>Prologue</h1>
+<h3>What the heck is socket.io?</h3>
+<p>Socket.io is a JavaScript framework which builds on <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API">WebSockets </a>technology.<br />
+From MDN, here's a quote for WebSockets:</p>
+<blockquote><p><strong>WebSockets</strong>is an advanced technology that makes it possible to open an interactive communication session between the user's browser and a server. With this API, you can send messages to a server and receive event-driven responses without having to poll the server for a reply.</p></blockquote>
+<p>But why we bother using socket.io? The answer lies to browser compatibility. Yeah, old story, not all browsers support this kind of technology, so that's where socket.io comes into play.<br />
+Using this one you can eliminate issues on WebSocket connections. It is a simplified wrapper which creates and works with WebSockets. An abstraction layer upon them, like the jQuery of WebSockets, if you like.<br />
+And problems like disconnections, timeouts, heartbeats, old browser, long polling, they are gone, it takes care of them for us.</p>
+<p>So, if I were to describe it, I would say that socket.io is an event-based framework, which allows bidirectional communication.<br />
+In simplified terms, my latter statement can be translated like: Users can connect to a socket and can send and receive data to connected sockets in real time.<br />
+Also, this framework loves the <a href="https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern">Pub/Sub pattern</a>, so if you are familiar with it, you won't have any issue, you will get used to it extremely fast.</p>
+<p>By the way, socket.io has browser support for smartphone, desktop and tablet and we can say that almost 90% of browsers can use that without any problems at all.</p>
+<h3>A'right and what about Mocha?</h3>
+<p>That one is easy. It is a testing framework running on Node.js, which plays very well with asynchronous tests. The bread and butter of this very story is asynchronous tests, because it is the only way to test socket.io.<br />
+So, your Node.js backend tests should be supported by <a href="https://mochajs.org/">Mocha</a>.</p>
+<p>Lastly, some short comments on chai assertion library. It will help you with assertions, it can work with the testing framework of your preference and also it can accommodate your testing style, meaning, you can test in BDD or TDD style, based on the assertion interface you will chose. I chose a TDD style and will work with <code>chai.assert</code>.</p>
+<h1>Tests will save you</h1>
+<h3>Why we need tests?</h3>
+<p>That should be obvious, right?<br />
+No code should ship to production without its pairing tests. Period.</p>
+<p>We need to test the business rules and the behavior that we are going to build, we need to know what happens when we fire an event from the browser, how the socket.io server acts on that.<br />
+We need to know how the client code is acting on socket server events.<br />
+We need to be able to refactor the code and be certain that it will work, test is going to let us know if we did break something.</p>
+<p>What you should take away from this section is that tests are important, so do write them. Please. Por favor.</p>
+<h3>What type of tests are we going to write</h3>
+<p>Hmm, let's think about for a moment.<br />
+We have two parts interacting, we have socket.io server and the socket.io client. The first is running on the backend and the latter is running on browser, so we need to connect these two different worlds together. Obviously we are not testing a unit.<br />
+We need to setup a server and a client on each test. The client will publish an event to the server and if the server knows how to respond to that event, subscribers will catch that and execute a <em><strong>callback</strong></em>.<br />
+It should be obvious by now, that we are going to write integration tests, as they cover less depth (less depth means more paths and more classes/units to assert), we are far away from a single unit of code, we test multiple.</p>
+<p>Notice that I have decorated in bold and italics the word 'callback'. This is tricky, because a callback is not handled by the code we are writing, thus the test, it is handled by another entity, that fires that callback when its work is done. That means, our test is going to linearly execute and then exit, as that kind of execution that was described is asynchronous. The callback is not going to fire by that time, so the test is going to lie to us (no assertions at the end, assertions are only in the callback body, so the test will exit with a success code).</p>
+<p>Thankfully, <a href="https://jasmine.github.io/">Jasmine</a>( I love this framework &lt;3 ) provides us with <a href="https://jasmine.github.io/edge/introduction#section-Asynchronous_Support">asynchronous support</a>.<br />
+Your<code>it</code>, <code>beforeEach</code>, etc. methods can take an optional argument which signals Jasmine that the asynchronous operation has ended, thus the test (or the setup methods) can terminate.<br />
+By default it awaits for 5 seconds before it nukes your test. When your asynchronous code is over, you just call this argument like a method and you are done. If you want to fail and complete the spec, you call its <code>fail</code> method.</p>
+<p><strong>Examples</strong></p>
+<p>This is a successful operation</p>
+<p>{% gist 1ef4d72315dd8cfa7d0890534967dd2c %}</p>
+<p>This is an operation which you want to fail for some reason, but deliberately, not because of timeout</p>
+<p>{% gist fe4f649791982e25950758af99d4c62a %}</p>
+<p>Please note that if you do not provide the <code>done</code>argument, the test(s) above will fail either way, with a timeout reason.</p>
+<h1>You show me yours, I'll show you mine</h1>
+<p>Enough with the talking, it's time to look more on the code and get our hands dirty.</p>
+<h3>Packages</h3>
+<p>For this one, at minimum we need:</p>
+<ul>
+<li>Jasmine</li>
+<li>Mocha</li>
+<li>Chai</li>
+<li>socket.io</li>
+<li>socket.io-client</li>
+</ul>
+<h4>package.json</h4>
+<p>Take a look at my <code>package.json</code> file for reference (for brevity, I have omitted some code).<br />
+I use Jasmine 2 and socket.io 2<br />
+Of course, because I use Typescript, I have downloaded the appropriate types as well</p>
+<p>{% gist bd1f7b1a69d56691471f2154c188cb7b %}</p>
+<h3>Configuring mocha</h3>
+<p>Looking at the <code>package.json</code> above, the command for local testing is <code>test:backend:dev</code>, which in turn uses <code>Gulp</code> to configure mocha and fire the test runner.<br />
+Let's take a look.</p>
+<p>{% gist c28bd173293ebedd6180db8a3b2ad63c %}</p>
+<p>I use <a href="https://github.com/sindresorhus/gulp-mocha">gulp-mocha</a> module here, which is only a wrapper around mocha, but helps me greatly to build this task.<br />
+So, I create a function, in order to reuse it in <code>mocha:dev</code> and <code>mocha:travis</code> tasks. Let's focus on the <code>mocha:dev</code> task, which runs the tests locally.<br />
+What I do here, is to run the Typescript compiler before the task executes (the <code>["ts"]</code> dependency), then watch all the Typescript files under a certain directory and when a change happens, run the Typescript compiler and mocha in order.</p>
+<h3>Setting up tests, configuring socket.io</h3>
+<p>Next step is to configure tests to create a socket.io server and a client. After that, we can proceed to tests.<br />
+Following code shows a basic setup. I import the socket.io server and socket.io-client, I create some configuration for the client and then I instantiate them, first the server which listens to a specific port (<code>5000</code> in this case) and then the client which connects to the server with the aforementioned options.</p>
+<p>{% gist 46f848b12b36f3549245e00efd24add6 %}</p>
+<p>Let me explain some parts of it:</p>
+<ul>
+<li><strong>Line 13</strong>: I choose to use the <code>assert</code> style from chai (I like more a TDD approach on this).<br />
+Should be used like<code><span class="nx">assert</span><span class="p">.</span><span class="nx">typeOf</span><span class="p">(</span><span class="nx">foo</span><span class="p">,</span> <span class="s1">'string'</span><span class="p">);</span></code></li>
+<li><strong>Line 14-18</strong>: I set the <code>socketUrl</code> to be on localhost and listen to port <code>5000</code>. This is the same port I am going to provide to the socket server to listen to.<br />
+The options are meant for the socket.io-client, they are pretty much standard and self-explanatory.</li>
+<li><strong>Line 27</strong>: Now, in <code>beforeEach()</code> method I create a new instance of the socket.io server and the client. In line 27 I create a new server which listens to port <code>5000</code>.</li>
+<li><strong>Line 28-29</strong>: I have a custom class named <code>Socket</code>, which receives an io server, so I pass it there and call the <code>connect()</code> method of that class, which only registers events using the <code>.on()</code> function of the socket.io server (more on this later).</li>
+<li><strong>Line 30</strong>: I create a new socket.io client which listens to the <code>socketUrl</code> and takes the <code>options</code> I defined earlier.</li>
+<li><strong>Line 33-36</strong>: In <code>afterEach()</code> function, which is called after each spec is completed, I close the connection of server and the client. I do this in order to not bleed invocations to listeners which may be set on other tests, so I make sure I test in isolation.</li>
+</ul>
+<h3>Action baby</h3>
+<p>Time for some tests. Before I do that, as promised, let's check on the <code>Socket</code> class and some of its code.</p>
+<p>{% gist ab77caa0ab6f3348890b0a275ae7742a %}</p>
+<p>When code calls the <code>connect()</code> method, events are subscribed in the socket.io server, like the <code>RoomCreateEvent</code>. When the client code emits that event, server will invoke this callback.<br />
+So, looking at the <code>RoomCreateEvent</code>, we can see that it receives some kind of data, of type <code>CreateRoomEventArgs</code> and a callback, which callback returns a <code>boolean</code> and an optional <code>string</code>.</p>
+<p>{% gist 00d8b270fdf1334bb2248243ba1a69c8 %}</p>
+<p>Now let's focus on the tests. First, let's write a test to make sure it can connect to the socket.</p>
+<p>{% gist 761933a9aa361a9a0b439466d745c9f9 %}</p>
+<p>First thing I do is to subscribe to the <code>"connect"</code> event for the client, so as soon as the client is connected I can proceed with my tests, like setting or emitting other events, and so on and so forth. So, the client connects, I assert the <code>client.connected</code> property to make sure he is connected and then I call the <code>done();</code> method to terminate the test.<br />
+Notice that I know this test is valid because it terminates successfully and all because of the <code>done</code> argument. If I hadn't call this method the test would fail with a timeout reason.</p>
+<p>Good, let's proceed in more advanced techniques now. I want to test the functionality on <code>RoomCreateEvent</code> event. Let's see some examples</p>
+<p>{% gist a14b5a922eabe233ceaf2f7fb7628da7 %}</p>
+<p>As you can see, asynchronous tests are not following the norm of normal tests, you declare your callback first, but you have your assertion logic there, I know, it looks weird.<br />
+So, this test case wants to test if the server will respond with an <code>InternalServerErrorEvent</code> if I pass undefined input data.</p>
+<p>So, as usual, I subscribe to the <code>"connect"</code> event. In its callback now, first I subscribe to the <code>InternalServerErrorEvent</code>, which is the event that I expect the server to respond with. My assertions are all there, in its callback, I assert the exception object that is returned and I terminate the test, calling the <code>done()</code> method.</p>
+<p>In order for the <code>InternalServerErrorEvent</code> callback to fire, I need to emit it somehow.<br />
+Fortunately, my server emits that (if you check at<strong> line 25</strong> of <code>Socket</code> class code, you will see the following linewhich indeed emits an event to whoever is subscribing to it.<br />
+<code><span class="pl-c1">this</span>.<span class="pl-en">emitInternalServerError</span>(<span class="pl-smi">socket</span>, <span class="pl-smi">error</span>);</code></p>
+<p>Notice that I assert the return value of the <code>RoomCreateEvent</code> callback. That is perfectly legal, if you check at <strong>line 24</strong>of <code>Socket</code> class, you will notice that I indeed call the <code>callback</code> and pass an object with a <code>false</code> value on <code>access</code> property<br />
+<code>callback({ access: false });</code><br />
+But my test will not terminate there, it will terminate at <code>InternalServerErrorEvent</code> callback.</p>
+<p>Let's look at one more test.<br />
+In the following, I emit the <code>RoomCreateEvent</code> with some valid data. My expectation is to:</p>
+<ul>
+<li>Receive an object with <code>access</code> property set to <code>true</code> and <code>roomId</code> property set to the roomId that was generated.</li>
+<li>Publish 3 events, which I expect to inform me that one user is listed into that room, I have 1 active room in total and 1 active user in total.
+<ul>
+<li><code>RoomShowAllEvent</code>. Returns the number of users connected to that room.</li>
+<li><code>RoomsAllEvent</code>. Returns the total number of active rooms.</li>
+<li><code>UsersAllEvent</code>. Returns the total number of users in all rooms.</li>
+</ul>
+</li>
+</ul>
+<p>{% gist e494cb56d7cc95277ef58371541edcdc %}</p>
+<p>In test, as I mentioned earlier, I first set my subscribers then I publish the event I am looking for. I publish the event with the <code>emit</code> method at the bottom of the test.</p>
+<p>First I subscribe to the <code>RoomShowAllEvent</code>.<br />
+Then, I subscribe to <code>RoomsAllEvent</code>.<br />
+Finally, I subscribe to <code>UsersAllEvent</code>. This one terminates the test.</p>
+<p>I did this on purpose, because this is the order they are executed in the <code>createRoom</code> method from Socket class. Let me refresh your memory with a snippet:</p>
+<p>{% gist 893e48f0ad81c991f6578357c17564cb %}</p>
+<p>I just followed the normal flow. This can make the reader understand better my intention, but it is also practical. The last event that is fired is the <code>UsersAllEvent</code>, so it makes sense to terminate the test when it is fired. If I called the <code>done()</code> in let's say <code>RoomShowAllEvent</code> event, then the <code>RoomsAllEvent</code> and <code>UsersAllEvent</code> callbacks wouldn't fire and as a result their assertions would not assert. Just make sure you end the test on the last callback that will run, find your exit point. :)</p>
+<p>For more advanced techniques and tests, like having multiple clients connect and how they would interact, take a look on my <a href="https://github.com/gdyrrahitis/pcard/tree/features/src/app/server">Github repository</a>, you will find over 2000 lines of code and 92 tests only for this socket.io implementation.</p>
+<h1>Summary</h1>
+<p>Use Mocha for your Node.js tests and make sure you support asynchronous testing.<br />
+From that point on, if you get familiar with the socket.io API, tests won't be that hard to author, you just need to emit client events to the server and assert server's callback. You might also need to register to client events also, if your server emits events that the client should listen to.</p>
+<p>Don't forget to call the done optional argument after your last callback, so you can mark your tests as successful, else you will have timeout issues and of course test failures.</p>
+<p>If you want to see more, or get some ideas, please feel free to take a look at my repository, <a href="https://github.com/gdyrrahitis/pcard/tree/features/src/app/server">here</a>, you can find tests on socket.io server and other useful stuff. Disclaimer, the work is in progress on that one.</p>

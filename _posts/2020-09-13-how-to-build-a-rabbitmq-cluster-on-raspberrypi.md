@@ -1,5 +1,6 @@
 ---
 layout: post
+image: https://miro.medium.com/1*HCqgUn5K3qSSARwIBniHTg.jpeg
 title: How to Build a RabbitMQ Cluster on Raspberry Pi
 date: 2020-09-13 00:00:00.000000000 +01:00
 type: post

@@ -1,5 +1,6 @@
 ---
 layout: post
+image: https://miro.medium.com/1*auDrXWq5X6uWWbOfayXe4Q.jpeg
 title: .NET Core and RabbitMQ Part 2 - Communication via AMQP
 date: 2020-08-01 00:00:00.000000000 +01:00
 type: post

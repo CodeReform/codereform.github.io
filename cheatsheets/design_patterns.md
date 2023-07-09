@@ -43,7 +43,7 @@ These patterns are concerned with algorithms and the assigment of responsibiliti
 ### Chain of responsibility
 > Avoid coupling the sender of a request to its receiver by giving more than one object a chance to handle the request. Chain the receiving objects and pass the request along the chain until an object handles it.
 
-![Chain of responsiblity]({{site.url}}/assets/img/chain_of_responsibility.jpg)
+![Chain of responsiblity]({{site.baseurl}}/assets/img/chain_of_responsibility.jpg)
 * Usage: When more than 1 object may handle a request and handler is not known.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/chain_of_responsibility/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/chain_of_responsibility/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/chain_of_responsibility/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/chain_of_responsibility/notebook.ipynb)
@@ -51,7 +51,7 @@ These patterns are concerned with algorithms and the assigment of responsibiliti
 ### Command
 > Encapsulate a request as an object, thereby letting you parameterize clients with different requests, queue or log requests and support undoable operations.
 
-![Command]({{site.url}}/assets/img/command.jpg)
+![Command]({{site.baseurl}}/assets/img/command.jpg)
 * Usage: To parameterize objects by an action to perform or support undo.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/command/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/command/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/command/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/command/notebook.ipynb)
@@ -65,7 +65,7 @@ These patterns are concerned with algorithms and the assigment of responsibiliti
 ### Mediator
 > Define an object that encapsulates how a set of objects interact. Mediator promotes loose coupling by keeping objects from referring to each other explicitly and it lets you vary their interactions indepentently.
 
-![Mediator]({{site.url}}/assets/img/mediator.jpg)
+![Mediator]({{site.baseurl}}/assets/img/mediator.jpg)
 * Usage: When have set of objects that communicate but interdependencies increase complexity, or want to customize behavior that is distributed across several classes without lots of subclassing.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/mediator/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/mediator/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/mediator/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/mediator/notebook.ipynb)
@@ -73,7 +73,7 @@ These patterns are concerned with algorithms and the assigment of responsibiliti
 ### Memento
 > Without violating encapsulation, capture and externalize an object's internal state so that the object can be restored to this state later.
 
-![Memento]({{site.url}}/assets/img/memento.jpg)
+![Memento]({{site.baseurl}}/assets/img/memento.jpg)
 * Usage: When need to implement undo operation.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/memento/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/memento/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/memento/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/memento/notebook.ipynb)
@@ -81,7 +81,7 @@ These patterns are concerned with algorithms and the assigment of responsibiliti
 ### Observer
 > Define a one-to-many dependency between objects so that when one object changes state, all its dependents are notified and updated automatically.
 
-![Observer]({{site.url}}/assets/img/observer.jpg)
+![Observer]({{site.baseurl}}/assets/img/observer.jpg)
 * Usage: When you don't want objects tightly coupled, when a change to oone object requires changing others.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/observer/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/observer/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/observer/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/observer/notebook.ipynb)
@@ -89,7 +89,7 @@ These patterns are concerned with algorithms and the assigment of responsibiliti
 ### State
 > Allow an object to alter its behavior when its internal state changes. The object will appear to change its class.
 
-![State]({{site.url}}/assets/img/state.jpg)
+![State]({{site.baseurl}}/assets/img/state.jpg)
 * Usage: An object's behavior depends on its state and must change its behavior at run-time depending on that state, or when operations have large, multipart conditional statements that depend on the object's state.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/state/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/state/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/state/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/state/notebook.ipynb)
@@ -98,7 +98,7 @@ These patterns are concerned with algorithms and the assigment of responsibiliti
 ### Strategy
 > Define a family of algorithms, encapsulate each one and make them interchangeable. Strategy lets the algorithm vary independently from clients that use it.
 
-![Strategy]({{site.url}}/assets/img/strategy.jpg)
+![Strategy]({{site.baseurl}}/assets/img/strategy.jpg)
 * Usage: When need different variants of an algorithm or have many related classes differ only in their behavior allowing to configure a class with one of many behaviors.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/strategy/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/strategy/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/strategy/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/strategy/notebook.ipynb)
@@ -106,7 +106,7 @@ These patterns are concerned with algorithms and the assigment of responsibiliti
 ### Template method
 > Define a skeleton of an algorithm in an operation, deferring some steps to subclasses. Template method lets subclasses redefine certain steps of an algorithm without changing the algorithm structure.
 
-![Template method]({{site.url}}/assets/img/template_method.jpg)
+![Template method]({{site.baseurl}}/assets/img/template_method.jpg)
 * Usage: Implement invariant parts of an algorithm once in abstract class and leave to subclasses to implement varying behavior.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/template_method/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/template_method/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/template_method/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/template_method/notebook.ipynb)
@@ -131,7 +131,7 @@ Structural patterns are concerned with how classes and objects are composed to f
 ### Decorator
 > Attach additional responsibilities to an object dynamically. Decorators provide a flexible alternative to subclassing for extending functionality.
 
-![Decorator]({{site.url}}/assets/img/decorator.jpg)
+![Decorator]({{site.baseurl}}/assets/img/decorator.jpg)
 * Usage: When want to add responsibilities to individual objects dynamically or when extension by subclassing is impractical.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/decorator/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/decorator/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/decorator/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/decorator/notebook.ipynb)
@@ -139,7 +139,7 @@ Structural patterns are concerned with how classes and objects are composed to f
 ### Facade
 > Provide a unified interface to a set of interfaces in a subsystem. Facade defines a higher-level interface that makes the subsystem easier to use.
 
-![Facade]({{site.url}}/assets/img/facade.jpg)
+![Facade]({{site.baseurl}}/assets/img/facade.jpg)
 * Usage: When you want to provide a simple interface to a complex subsystem. Another use-case is when you have many dependencies between clients and implementation classes of an abstraction, use Facade to decouple the subsystem from clients and other subsystems. Usually one Facade object is required, Facades are often Singletons.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/facade/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/facade/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/facade/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/facade/notebook.ipynb)
@@ -167,7 +167,7 @@ Structural patterns are concerned with how classes and objects are composed to f
 ### Singleton
 > Ensure a class only has one instance and provide a global point of access to it.
 
-![Singleton]({{site.url}}/assets/img/singleton.jpg)
+![Singleton]({{site.baseurl}}/assets/img/singleton.jpg)
 * Usage: When need to create one instance of a class and use it throughout the lifecycle of a program. Another usage is if want to limit concurrent access to a shared resource.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/singleton/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/singleton/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/singleton/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/singleton/notebook.ipynb)

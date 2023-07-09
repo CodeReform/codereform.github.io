@@ -9,7 +9,7 @@ I am George Dyrrachitis, a passionate Software Engineer, passionate anime fan, s
 
 In this blog I note down my ideas on different topics of computer science, so please don't expect a strict format, I blog pretty much about anything, soft skills, technical, design, or any other idea I have in my mind!
 
-Icurrently live and work as a Senior Software Engineer in Dublin, enjoying being involved in various technology meetups and events.
+I currently live and work as a Senior Software Engineer in Dublin, enjoying being involved in various technology meetups and events.
 
 ---
 

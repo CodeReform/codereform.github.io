@@ -1,5 +1,6 @@
 ---
 layout: post
+image: https://miro.medium.com/0*Ij_dw5c9yAvykOkh.jpg
 title: Boxing and unboxing in C#
 date: 2019-06-23 00:00:00.000000000 +01:00
 type: post

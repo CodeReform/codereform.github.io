@@ -1,5 +1,6 @@
 ---
 layout: post
+image: https://miro.medium.com/1*P7x-_0XfQz6CVmMY_QAv0w.png
 title: Build a secure Angular client using ASP.NET Core and OAuth
 date: 2018-08-19 00:00:00.000000000 +01:00
 type: post

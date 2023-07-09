@@ -1,5 +1,6 @@
 ---
 layout: post
+image: https://miro.medium.com/1*EP7jWZsvNoRYw2KcyKdb2g.jpeg
 title: Configuring an Nginx TCP proxy for my RabbitMQ cluster in under 10 minutes
 date: 2020-10-17 00:00:00.000000000 +01:00
 type: post

@@ -24,6 +24,7 @@ layout: compress
 
     <div id="main-wrapper" class="d-flex justify-content-center">
       <div id="main" class="container px-xxl-5">
+        {% include migration-alert.html lang=lang %}
         {% include topbar.html lang=lang %}
         {{ content }}
         {% include_cached search-results.html lang=lang %}

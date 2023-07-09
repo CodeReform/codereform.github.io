@@ -1,5 +1,6 @@
 ---
 layout: post
+image: https://miro.medium.com/1*JZoffTvJsUbUz003vzW0Gw.jpeg
 title: Babel F# pipeline operator proposal
 date: 2019-07-10 00:00:00.000000000 +01:00
 type: post

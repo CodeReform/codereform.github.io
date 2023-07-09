@@ -1,5 +1,6 @@
 ---
 layout: post
+image: https://miro.medium.com/1*MfOHvI5b1XZKYTXIAKY7PQ.png
 title: Structs and the in keyword in C#
 date: 2018-07-21 18:45:30.000000000 +01:00
 type: post

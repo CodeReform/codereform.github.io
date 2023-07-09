@@ -1,5 +1,6 @@
 ---
 layout: post
+image: https://miro.medium.com/0*SaA65QL6u5FRUTc9
 title: ASP.NET Core API authentication using JWT bearer tokens
 date: 2018-08-05 00:00:00.000000000 +01:00
 type: post

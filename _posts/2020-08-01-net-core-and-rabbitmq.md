@@ -1,5 +1,6 @@
 ---
 layout: post
+image: https://miro.medium.com/1*QwkJeq13EEaXk7p1nOLibg.jpeg
 title: .NET Core and RabbitMQ
 date: 2020-08-01 00:00:00.000000000 +01:00
 type: post

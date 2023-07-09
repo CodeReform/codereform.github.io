@@ -1,5 +1,6 @@
 ---
 layout: post
+image: https://miro.medium.com/1*-aBv_RRd7OuqiD0HpDLeWw.jpeg
 title: How the pomodoro technique has changed the way I work
 date: 2018-08-11 00:00:00.000000000 +01:00
 type: post

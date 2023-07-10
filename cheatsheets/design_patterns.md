@@ -122,6 +122,15 @@ Structural patterns are concerned with how classes and objects are composed to f
 ### Adapter
 > Convert the interface of a class into another interface clients expect. Adapter lets classes work together that couldn't otherwise because of incompatible interfaces.
 
+Two flavors of adapters
+* Class adapter uses multiple inheritance to adapte one interface to another
+* Object adapter relies on object composition
+
+![Adapter]({{site.baseurl}}/assets/img/adapter.jpg)
+* Usage: When you want to use an existing class and its interface does not match the one you need.
+* Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/adapter/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/adapter/pattern.py)
+* Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/adapter/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/adapter/notebook.ipynb)
+
 ### Bridge
 > Decouple an abstraction from its implementation so that the two can vary indepentently.
 

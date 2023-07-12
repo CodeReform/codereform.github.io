@@ -170,6 +170,14 @@ Two flavors of adapters
 ### Factory method
 > Define an interface for creating an object, but let subclasses to decide which class to instantiate. Factory method lets a class defer instantiation to subclasses.
 
+![Factory method]({{site.baseurl}}/assets/img/factory.jpg)
+* Usage when
+    * a class cannot anticipate the class of objects it must create
+    * a class wants its subclasses to specify the objects it creates
+    * classes delegate responsibility to one of several helper subclasses and you want to localize the knowledge of which helper subclass is the delegate.
+* Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/factory/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/factory/pattern.py)
+* Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/factory/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/factory/notebook.ipynb)
+
 ### Prototype
 > Specify the kinds of objects to create using a prototypical instance and create new objects by copying its prototype.
 

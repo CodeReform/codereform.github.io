@@ -21,8 +21,6 @@ author:
   last_name: Dyrrachitis
 permalink: "/2020/08/01/net-core-and-rabbitmq"
 ---
-![](https://miro.medium.com/1*QwkJeq13EEaXk7p1nOLibg.jpeg)
-
 # .NET Core and RabbitMQ
 
 Having a system which is composed by distributed applications is a great idea, but a way to communicate with each other is required. A very popular architecture is the so called MDA or Message Driven Architecture, where a system is composed from autonomous components that communicate with each other via messages. The part which facilitates communication is the message broker, effectively decoupling applications, which don't communicate directly, rather they publish messages to the message broker and the latter is responsible to forward them to interested parties, i.e. other applications.

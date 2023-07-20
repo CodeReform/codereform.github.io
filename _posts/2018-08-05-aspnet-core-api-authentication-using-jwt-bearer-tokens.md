@@ -22,8 +22,6 @@ permalink: "/2018/08/05/aspnet-core-api-authentication-using-jwt-bearer-tokens"
 ---
 # ASP.NET Core API authentication using JWT bearer tokens
 
-![](https://miro.medium.com/0*SaA65QL6u5FRUTc9)
-
 What is OAuth 2.0 and how its flows can be applied for securing my applications? What does a token do and how it is useful in securing API's? Is there any way to implement all these nice and easy in ASP.NET Core? In this post I will cover these topics, by first discussing about why token based security is so successful in security scenarios, and the OAuth protocol play in this. We'll see more closely one of OAuth flows, the client credentials flow and implement it to secure an ASP.NET Web API application.
 
 ## Source code

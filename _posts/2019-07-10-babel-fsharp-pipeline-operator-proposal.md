@@ -21,8 +21,6 @@ permalink: "/2019/07/10/babel-fsharp-pipeline-operator-proposal"
 ---
 # Babel F# pipeline operator proposal
 
-![](https://miro.medium.com/1*JZoffTvJsUbUz003vzW0Gw.jpeg)
-
 ## Introduction
 
 Writing readable and declarative code in JavaScript, how nice it would be! 😆

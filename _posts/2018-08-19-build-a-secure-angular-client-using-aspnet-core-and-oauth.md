@@ -22,8 +22,6 @@ permalink: "/2018/08/19/build-a-secure-angular-client-using-aspnet-core-and-oaut
 ---
 # Build a secure Angular client using ASP.NET Core and OAuth
 
-![](https://miro.medium.com/1*P7x-_0XfQz6CVmMY_QAv0w.png)
-
 What is the resource owner password credentials grant? How can I secure my Angular client using OAuth and JWT bearer tokens? In this post I will focus on the resource owner password credentials grant, a different kind of credential flow supported by the OAuth protocol, and how it can be used to secure certain resources on an Angular application. Similarly to [previous post](https://medium.com/@giorgos.dyrrahitis/asp-net-core-api-authentication-with-jwt-140a4858b5bd), I will create the authorization server from scratch, then the resource server, a simple ASP.NET Core RESTful API, and finally the Angular 6 application, with all the bits and pieces required to prevent unauthorized access.
 
 ## Source code

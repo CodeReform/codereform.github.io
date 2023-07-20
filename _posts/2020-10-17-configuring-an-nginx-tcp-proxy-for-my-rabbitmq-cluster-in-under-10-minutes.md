@@ -21,8 +21,6 @@ author:
   last_name: Dyrrachitis
 permalink: "/2020/10/17/configuring-an-nginx-tcp-proxy-for-my-rabbitmq-cluster-in-under-10-minutes"
 ---
-![](https://miro.medium.com/1*EP7jWZsvNoRYw2KcyKdb2g.jpeg)
-
 # Configuring an Nginx TCP proxy for my RabbitMQ cluster in under 10 minutes
 
 In the [previous post](https://medium.com/swlh/how-to-build-a-rabbitmq-cluster-with-a-few-tiny-raspberry-pi-zeros-e5ffb3920e40), I described what a cluster is and how to setup a RabbitMQ cluster on Raspberry Pi with a few Zero W's. I've built a 5 node cluster, with one master and 4 followers. But this is not enough, I'd like my cluster to be accessible from a single location, it doesn't really matter which node my applications connect to, since I would work only with HA or Quorum queues. For the latter, a new blog post is coming up where I'll go through exhaustive details on these queues, their pros, cons and usage examples.

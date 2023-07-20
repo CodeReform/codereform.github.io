@@ -20,8 +20,6 @@ author:
   last_name: Dyrrachitis
 permalink: "/2018/07/21/structs-and-the-in-keyword-in-csharp/"
 ---
-![](https://miro.medium.com/1*MfOHvI5b1XZKYTXIAKY7PQ.png)
-
 # Structs and the in keyword in C#
 
 Since the release of 7.0 version for C#, we've seen many small, yet useful features added to the language, aiming to aid developers, directly or indirectly. A new keyword was added in version 7.2, the in keyword, which makes the reference semantics of the language richer. In this post, I will explore this new keyword, along with readonly structs and the ref readonly modifier.

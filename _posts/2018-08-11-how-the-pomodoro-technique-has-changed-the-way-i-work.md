@@ -20,8 +20,6 @@ permalink: "/2018/08/11/how-the-pomodoro-technique-has-changed-the-way-i-work"
 ---
 # How the pomodoro technique has changed the way I work
 
-![](https://miro.medium.com/1*-aBv_RRd7OuqiD0HpDLeWw.jpeg)
-
 For many years I thought that working hard was the way to go. Just make some TO-DO lists, pick work items in order, carry the task on and move to the next. This was my style and I thought this was the proper way. However this proved to be not that great plan, as I had a hard time tracking my progress, maintain focus on tasks at hand, while burnouts occurred more often than usual. On top of that, health issues risen to make things worse, degrading my focus even more. There were times that I was at terrible shape and my performance at work and at personal time decreased, spanning for periods of 3–4 weeks. So working that hard was not the way to go, apparently. Until I found out about the Pomodoro technique.
 
 This is my story about the Pomodoro technique and how it helped me.

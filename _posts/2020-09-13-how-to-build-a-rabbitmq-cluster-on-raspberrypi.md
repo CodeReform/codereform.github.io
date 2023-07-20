@@ -20,8 +20,6 @@ author:
   last_name: Dyrrachitis
 permalink: "/2020/09/13/how-to-build-a-rabbitmq-cluster-on-raspberrypi"
 ---
-![](https://miro.medium.com/1*HCqgUn5K3qSSARwIBniHTg.jpeg)
-
 # How to Build a RabbitMQ Cluster on Raspberry Pi
 
 In this blog post I will show you how to build and configure a 5-node Raspberry Pi cluster and use RabbitMQ's clustering capabilities on the above to scale the message broker horizontally.

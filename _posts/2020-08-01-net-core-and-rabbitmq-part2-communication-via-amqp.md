@@ -21,8 +21,6 @@ author:
   last_name: Dyrrachitis
 permalink: "/2020/08/01/net-core-and-rabbitmq-part2-communication-via-amqp"
 ---
-![](https://miro.medium.com/1*auDrXWq5X6uWWbOfayXe4Q.jpeg)
-
 # .NET Core and RabbitMQ Part 2 - Communication via AMQP
 
 In [part 1](https://medium.com/@giorgos.dyrrahitis/net-core-and-rabbitmq-5f3c76f39de6) I demonstrated how to create a simple consumer and producer using ASP.NET Core Hosted Services. In this part, I will cover everything that happens under the wraps, the communication between the client and the server, the connection, the message publishing and consuming.

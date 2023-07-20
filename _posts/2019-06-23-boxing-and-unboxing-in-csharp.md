@@ -21,8 +21,6 @@ permalink: "/2019/06/23/boxing-and-unboxing-in-csharp"
 ---
 # Boxing and unboxing in C#
 
-![](https://miro.medium.com/0*Ij_dw5c9yAvykOkh.jpg)
-
 ## Introduction
 
 Working with types sometimes can be very tricky for a developer, regardless of the employed programming language. Surely, many professionals have a story or two to share on this. Types can be tricky beasts and it's not uncommon to be accompanied with few surprises and often sinister quirks which can cause all kinds of trouble. In this post, I want to discuss about boxing & unboxing value types, the performance penalty of this technique and ways to avoid this altogether when applicable.

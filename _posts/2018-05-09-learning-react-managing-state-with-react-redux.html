@@ -34,10 +34,12 @@ youtubeId: W6H5B0-6MUk
 <p>In the <a href="https://wp.me/p7uERY-gA">previous post</a>, I blogged about React's components and how to manage state internally in a component. Although working with state within a component is great, it is limiting as well, as this state is only local, it does not travel to other components within the same application. In some cases this is fine, but in other scenarios, like in more complex applications, communication is vital. Components might want to react on actions that are sourced from other component state changes.</p>
 <p>There are various ways to support component communication, but I would like to talk about the Redux pattern in this post.</p>
 <h2>Redux</h2>
-<p>Redux is pattern, based on the <a href="https://facebook.github.io/flux/docs/in-depth-overview.html#content">Flux</a> pattern that Facebook introduced. Let me quickly introduce you to the gist of these patterns by first exploring quickly the Flux and then the Redux patterns. (disclaimer: image on Flux comes from the official Facebook docs page).</p>
+<p>Redux is pattern, based on the <a href="https://facebookarchive.github.io/flux/docs/in-depth-overview">Flux</a> pattern that Facebook introduced. Let me quickly introduce you to the gist of these patterns by first exploring quickly the Flux and then the Redux patterns. (disclaimer: image on Flux comes from the official Facebook docs page).</p>
 <h4>Flux</h4>
 <p>Intent: A unidirectional data flow pattern to notify state changes in component-based architecture applications.</p>
-<p>[caption id="" align="alignnone" width="1300"]<img src="{{ site.baseurl }}/assets/2018/05/flux-simple-f8-diagram-explained-1300w.png" alt="Flux pattern" width="1300" height="708" /> Image 1 - Flux pattern[/caption]</p>
+<p>
+  {% include caption.html url="/assets/2018/05/flux-simple-f8-diagram-explained-1300w.png" description="Image 1 - Flux pattern" %}
+</p>
 <p>Participants:</p>
 <ul>
 <li><strong>Dispatcher</strong>. Receives and emits actions to stores.</li>
@@ -53,7 +55,10 @@ youtubeId: W6H5B0-6MUk
 <li>State is immutable.</li>
 <li>Changes are made with pure functions.</li>
 </ol>
-<p>[caption id="attachment_1071" align="alignnone" width="750"]<a href="{{ site.baseurl }}/2018/05/redux.png"><img class="wp-image-1071 size-full" src="{{ site.baseurl }}/assets/2018/05/redux.png" alt="Redux pattern" width="750" height="599" /></a> Image 2 - Redux pattern[/caption]</p>
+<p>
+  <!-- [caption id="attachment_1071" align="alignnone" width="750"]<a href="{{ site.baseurl }}/2018/05/redux.png"><img class="wp-image-1071 size-full" src="{{ site.baseurl }}/assets/2018/05/redux.png" alt="Redux pattern" width="750" height="599" /></a> Image 2 - Redux pattern[/caption] -->
+  {% include caption.html url="/assets/2018/05/redux.png" description="Image 2 - Redux pattern" %}
+</p>
 <p>Participants:</p>
 <ul>
 <li><strong>Store</strong>. The singular source of truth, it receives actions from dispatchers, uses reducers internally to change state and also emits data/state changes to controller views.</li>

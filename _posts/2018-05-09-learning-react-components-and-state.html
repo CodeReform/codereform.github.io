@@ -62,7 +62,7 @@ In order to change this <code>value</code> property on the state, I use the <cod
 A rule that you should never forget is that you should not modify state directly, rather you should use the <code>setState(...)</code> method when you'd like to update a state property. The only place that you can assign values to state directly is the constructor.</p>
 <p>This is the full code of the <code>App</code> component.<br />
 {% gist 1a3c76c225d9fc45aaefc29efd392e4f  %}</p>
-<p>[video width="1920" height="1080" mp4="https://georgedyrra.files.wordpress.com/2018/05/20180505_202931trim.mp4" loop="on" autoplay="on"][/video]</p>
+<p>[video width="1920" height="1080" mp4="https://youtu.be/W6H5B0-6MUk" loop="on" autoplay="on"][/video]</p>
 <p>This is a very good step towards learning React, as you probably got the feel of what is a component and what a component can do. Unfortunately, this solution here is not scalable. My view definition contains too much markup, this can be divided further into components, which could broadcast/listen to state changes through some sort of communication mechanism.<br />
 In the next post, I am going to refactor this very simple application by separating the concerns into components and by building a communication mechanism between them so one component's state changes would affect another, independent component.</p>
 <h2>Summary</h2>

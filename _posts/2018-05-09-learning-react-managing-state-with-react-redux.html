@@ -18,10 +18,6 @@ meta:
   geo_public: '0'
   _thumbnail_id: '1013'
   _edit_last: '75937724'
-  enclosure: |
-    https://georgedyrra.files.wordpress.com/2018/05/20180505_202931trim.mp4
-    104025
-    video/mp4
   _publicize_job_id: '17670605884'
   timeline_notification: '1525894400'
 author:
@@ -29,6 +25,7 @@ author:
   first_name: George
   last_name: Dyrrachitis
 permalink: "/2018/05/09/learning-react-managing-state-with-react-redux/"
+youtubeId: W6H5B0-6MUk
 ---
 <p>Designing your application using a component-based architecture is a first step towards a nice decoupled design. But with great power comes great complexity! Components might need to interact in different ways in order to achieve some common goals. How can components communicate with each other? In this post, I am going to show how to make components communicate by using the redux pattern.</p>
 <h2><!--more-->Source Code</h2>
@@ -110,7 +107,7 @@ When the input content changes by some user interaction, the <code>onChange</cod
 I am just fetching the state from the store and passing it to the view to render, as you might notice in the <code>render</code> method, using the <code>store.getState()</code> method.</p>
 <p>{% gist 88d0069657a7b1ec84f8bf95fadb4339  %}</p>
 <p>Below you can see everything in action, it is working exactly like before in the previous post.</p>
-<p>[video width="1920" height="1080" mp4="https://youtu.be/W6H5B0-6MUk" autoplay="true" loop="true"][/video]</p>
+<p>{% include youtubevideo.html id=page.youtubeId %} </p>
 <p>Although this code seems to work and the problem of component communication seems to be weathered, I really don't like the fact that component's know about the store. They shouldn't even care, yet it is passed as dependency. In next post I will try to find a way to eliminate this dependency from the component's and make code less cluttered.</p>
 <h2>Summary</h2>
 <p>In this post you saw what is the Redux pattern and how you can use the React Redux library in your application to make components communicate.<br />

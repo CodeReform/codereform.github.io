@@ -19,15 +19,12 @@ meta:
   _thumbnail_id: '1013'
   _publicize_job_id: '17670601113'
   timeline_notification: '1525894390'
-  enclosure: |
-    https://georgedyrra.files.wordpress.com/2018/05/20180505_202931trim.mp4
-    104025
-    video/mp4
 author:
   display_name: George Dyrrachitis
   first_name: George
   last_name: Dyrrachitis
 permalink: "/2018/05/09/learning-react-components-and-state/"
+youtubeId: W6H5B0-6MUk
 ---
 <p>Components are small, isolated and reusable units of work that make up a piece of a user interface. Each component is independent, with emphasis in separation of concerns, having it's own business &amp; presentation logic.</p>
 <p>In this post, I am going to show you how to create a single component, as well as how to mutate state within that component by either passing variables, one way in the component or by changing an input value which changes the component's state.</p>
@@ -62,7 +59,7 @@ In order to change this <code>value</code> property on the state, I use the <cod
 A rule that you should never forget is that you should not modify state directly, rather you should use the <code>setState(...)</code> method when you'd like to update a state property. The only place that you can assign values to state directly is the constructor.</p>
 <p>This is the full code of the <code>App</code> component.<br />
 {% gist 1a3c76c225d9fc45aaefc29efd392e4f  %}</p>
-<p>[video width="1920" height="1080" mp4="https://youtu.be/W6H5B0-6MUk" loop="on" autoplay="on"][/video]</p>
+<p>{% include youtubevideo.html id=page.youtubeId %} </p>
 <p>This is a very good step towards learning React, as you probably got the feel of what is a component and what a component can do. Unfortunately, this solution here is not scalable. My view definition contains too much markup, this can be divided further into components, which could broadcast/listen to state changes through some sort of communication mechanism.<br />
 In the next post, I am going to refactor this very simple application by separating the concerns into components and by building a communication mechanism between them so one component's state changes would affect another, independent component.</p>
 <h2>Summary</h2>

@@ -17,10 +17,6 @@ meta:
   _edit_last: '75937724'
   _thumbnail_id: '1128'
   geo_public: '0'
-  enclosure: |
-    https://georgedyrra.files.wordpress.com/2018/05/bpost-azure-ad-20180523_114048.mp4
-    2187354
-    video/mp4
   _publicize_job_id: '18164542478'
   timeline_notification: '1527073455'
   _oembed_c30ce6552d3e5ad4ab3d875ddc04ea95: "{{unknown}}"
@@ -29,6 +25,7 @@ author:
   first_name: George
   last_name: Dyrrachitis
 permalink: "/2018/05/23/asp-net-core-2-0-authentication-with-azure-active-directory/"
+youtubeId: BjFjYk8j3IU
 ---
 <p>In previous posts of this series, <em>ASP.NET Core 2.0 Authentication</em>, I talked about local logins, where you have your own identity management solution and also social logins, where you work with social media or third party providers to sign in users in your application. In this one, I am going to talk about Azure Active Directory, which is a cloud based solution for identity management and how you can make this work with your ASP.NET Core 2.0 application.</p>
 <p><!--more--></p>
@@ -81,7 +78,7 @@ Azure AD is using the Open Id Connect protocol, so I need to add support for tha
 <p>For the <code>SignOut</code> action, notice that I sign out the user twice! First, I sign-out the user in the application, by killing the corresponding local browser cookie. Then, I sign-out from the OIDC authentication with Azure AD. I want to be sure that I have killed any potential authentication session that might still exist in the Azure AD end. The latter will cause a redirect back to the home page, using the <code>SignedOutRedirectUri</code> from the configuration.</p>
 <p>{% gist 92db9a2edb89c92a7c7da44088c4572b  %}</p>
 <p>See this in action.</p>
-<p>[video width="1920" height="1080" mp4="https://youtu.be/BjFjYk8j3IU" autoplay="true" loop="true"][/video]</p>
+<p>{% include youtubevideo.html id=page.youtubeId %} </p>
 <h2>Summary</h2>
 <p>In this post, I showed how to secure your application by using Azure Active Directory to manage access.<br />
 Azure AD is a multi-tenant, cloud based directory in which you can manage groups and users in various ways, providing you application access management and security. You need to have an Azure subscription to create a new directory, which inherently is free, but if you want more features you can try the premium version. You can of course integrate your organization's Windows Active Directory there in order to manage cloud-based application access.</p>

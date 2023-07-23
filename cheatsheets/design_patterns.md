@@ -59,6 +59,13 @@ These patterns are concerned with algorithms and the assigment of responsibiliti
 ### Interpreter
 > Given a language, define a representation for its grammar along with an interpreter that uses the representation to interpret sentences in the language.
 
+* Usage when there is a language to interpret and you can represent statements in the language as abstract trees. It works best when the grammar is simple and efficiency is not a critical concern.
+
+![Interpreter]({{site.baseurl}}/assets/img/interpreter.jpg)
+* Usage: To parameterize objects by an action to perform or support undo.
+* Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/interpreter/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/interpreter/pattern.py)
+* Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/interpreter/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/interpreter/notebook.ipynb)
+
 ### Iterator
 > Provide a way to access the elements of an aggregate object sequentially without exposing tits underlying representation.
 
@@ -93,7 +100,6 @@ These patterns are concerned with algorithms and the assigment of responsibiliti
 * Usage: An object's behavior depends on its state and must change its behavior at run-time depending on that state, or when operations have large, multipart conditional statements that depend on the object's state.
 * Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/state/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/state/pattern.py)
 * Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/state/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/state/notebook.ipynb)
-
 
 ### Strategy
 > Define a family of algorithms, encapsulate each one and make them interchangeable. Strategy lets the algorithm vary independently from clients that use it.

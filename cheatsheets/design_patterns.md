@@ -69,6 +69,14 @@ These patterns are concerned with algorithms and the assigment of responsibiliti
 ### Iterator
 > Provide a way to access the elements of an aggregate object sequentially without exposing tits underlying representation.
 
+![Iterator]({{site.baseurl}}/assets/img/iterator.jpg)
+* Usage when
+    * to access an aggregate object's contents without exposing its internal representation
+    * to support multiple traversals of aggregate objects
+    * to provide a uniform interface for traversing different aggregate structures
+* Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/iterator/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/iterator/pattern.py)
+* Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/iterator/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/iterator/notebook.ipynb)
+
 ### Mediator
 > Define an object that encapsulates how a set of objects interact. Mediator promotes loose coupling by keeping objects from referring to each other explicitly and it lets you vary their interactions indepentently.
 

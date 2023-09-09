@@ -1,0 +1,102 @@
+[
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/3735293.Clean_Code",
+        "imgUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1436202607l/3735293._SX318_.jpg",
+        "caption": "Clean Code: A Handbook of Agile Software Craftsmanship"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/10284614-the-clean-coder",
+        "imgUrl": "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1347470803i/10284614._SX318_.jpg",
+        "caption": "The Clean Coder: A Code of Conduct for Professional Programmers"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/84983.Agile_Principles_Patterns_and_Practices_in_C_",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1348657323i/84983.jpg",
+        "caption": "Agile Principles, Patterns, and Practices in C#"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/23232941-soft-skills",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1419180921i/23232941.jpg",
+        "caption": "Soft Skills: The software developer's life manual"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/85009.Design_Patterns",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1348027904i/85009.jpg",
+        "caption": "Design Patterns: Elements of Reusable Object-Oriented Software"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/300092.Data_Structures_and_Algorithms_in_Java",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1348210057i/300092.jpg",
+        "caption": "Data Structures and Algorithms in Java"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/27862.Algorithms_in_C_Parts_1_4",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1348208578i/27862.jpg",
+        "caption": "Algorithms in C, Parts 1-4: Fundamentals, Data Structures, Sorting, Searching: Fundamentals, Data Structures, Sorting, Searching (3rd Edition)"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/23463279-designing-data-intensive-applications",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1415816873i/23463279.jpg",
+        "caption": "Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/574740.Program_Development_in_Java",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1389583096i/574740.jpg",
+        "caption": "Program Development in Java: Abstraction, Specification, and Object-Oriented Design"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/6166611-real-world-functional-programming",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1361784106i/6166611.jpg",
+        "caption": "Real-World Functional Programming: With Examples in F and C#"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/21953583-pro-asp-net-web-api",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1397997630i/21953583.jpg",
+        "caption": "Pro ASP.NET Web API: HTTP Web Services in ASP.NET"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/2998152-javascript",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1328834793i/2998152.jpg",
+        "caption": "JavaScript: The Good Parts"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/17623611-the-art-of-unit-testing",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1384383111i/17623611.jpg",
+        "caption": "The Art of Unit Testing: with examples in C#"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/3278309-introduction-to-information-retrieval",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1414346605i/3278309.jpg",
+        "caption": "Introduction to Information Retrieval"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/626465.Data_Mining",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1348944140i/626465.jpg",
+        "caption": "Data Mining: Introductory and Advanced Topics"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/85001.UML_Distilled",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1348039270i/85001.jpg",
+        "caption": "UML Distilled: A Brief Guide to the Standard Object Modeling Language"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/18868679-pro-asp-net-web-api-security",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1384921225i/18868679.jpg",
+        "caption": "Pro ASP.NET Web API Security: Securing ASP.NET Web API"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/13228633-getting-started-with-oauth-2-0",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1344696832i/13228633.jpg",
+        "caption": "Getting Started with OAuth 2.0"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/1025142.Greek_Ways",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1328697142i/1025142.jpg",
+        "caption": "Greek Ways: How the Greeks Created Western Civilization"
+    },
+    {
+        "srcUrl": "https://www.goodreads.com/book/show/29401972-the-leadership-genius-of-julius-caesar",
+        "imgUrl": "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1459115626i/29401972.jpg",
+        "caption": "The Leadership Genius of Julius Caesar: Modern Lessons from the Man Who Built an Empire"
+    }
+]

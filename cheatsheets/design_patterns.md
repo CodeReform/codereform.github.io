@@ -156,6 +156,15 @@ Two flavors of adapters
 ### Bridge
 > Decouple an abstraction from its implementation so that the two can vary indepentently.
 
+![Bridge]({{site.baseurl}}/assets/img/bridge.jpg)
+* Usage when:
+    * you want to switch implementations at runtime
+    * changes in the implementation of an abstraction should not have impact on clients; that is their code should not have to recompile.
+    * when you want to divide and organize a monolithic class that has several variants of some functionality.
+    * when you need to extend a class into several indepentent dimensions.
+* Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/bridge/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/bridge/pattern.py)
+* Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/bridge/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/bridge/notebook.ipynb)
+
 ### Composite
 > Compose objects into tree structures to represent part-whole hierarchies. Composite lets clients treat individual objects and compositions of object uniformly.
 

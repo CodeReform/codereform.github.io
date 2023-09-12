@@ -207,6 +207,13 @@ Two flavors of adapters
 ### Builder
 > Separate the construction of a complex object from its representation so that the same construction process can create different representations.
 
+![Builder]({{site.baseurl}}/assets/img/builder.jpg)
+* Usage when
+    * when the algorithm for creating a complex object should be independent of the parts that make  up the object and how they are assembled
+    * the construction process must allow different representations for the object that is constructed
+* Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/builder/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/builder/pattern.py)
+* Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/builder/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/builder/notebook.ipynb)
+
 ### Factory method
 > Define an interface for creating an object, but let subclasses to decide which class to instantiate. Factory method lets a class defer instantiation to subclasses.
 

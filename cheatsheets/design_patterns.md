@@ -168,6 +168,13 @@ Two flavors of adapters
 ### Composite
 > Compose objects into tree structures to represent part-whole hierarchies. Composite lets clients treat individual objects and compositions of object uniformly.
 
+![Composite]({{site.baseurl}}/assets/img/composite.jpg)
+* Usage when:
+    * you want to represent part-whole hierarchies of objects
+    * you want clients to be able to ignroe the difference between compositions of objects and individual objects. Clietns will treat the objects in the composite structure uniformly.
+* Implementation: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/composite/pattern.py](https://github.com/gdyrrahitis/design-patterns-python/blob/main/composite/pattern.py)
+* Execution: [https://github.com/gdyrrahitis/design-patterns-python/blob/main/composite/notebook.ipynb](https://github.com/gdyrrahitis/design-patterns-python/blob/main/composite/notebook.ipynb)
+
 ### Decorator
 > Attach additional responsibilities to an object dynamically. Decorators provide a flexible alternative to subclassing for extending functionality.
 

@@ -1,0 +1,79 @@
+<mxfile host="65bd71144e">
+    <diagram name="Page-1" id="SDWG9DKmseKplDPkIkF8">
+        <mxGraphModel dx="978" dy="456" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="bwSSeVmjy1r_vaOKLsch-12" value="" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="70" y="90" width="700" height="460" as="geometry"/>
+                </mxCell>
+                <mxCell id="bwSSeVmjy1r_vaOKLsch-1" value="Flyweight" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="550" y="110" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="bwSSeVmjy1r_vaOKLsch-4" value="+ Operation(extrinsicState)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" parent="bwSSeVmjy1r_vaOKLsch-1" vertex="1">
+                    <mxGeometry y="26" width="160" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="bwSSeVmjy1r_vaOKLsch-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=0;" parent="1" source="bwSSeVmjy1r_vaOKLsch-5" target="bwSSeVmjy1r_vaOKLsch-1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="bwSSeVmjy1r_vaOKLsch-5" value="UnsharedConcreteFlyweight" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="525" y="400" width="210" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="bwSSeVmjy1r_vaOKLsch-8" value="+ Operation(extrinsicState)&lt;br&gt;+ allState" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" parent="bwSSeVmjy1r_vaOKLsch-5" vertex="1">
+                    <mxGeometry y="26" width="210" height="44" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" style="edgeStyle=none;html=1;entryX=0.4;entryY=1.083;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="2" target="15" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="155" y="170" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="16" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="2" target="12">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="17" style="edgeStyle=none;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.419;entryY=1.114;entryDx=0;entryDy=0;entryPerimeter=0;rounded=1;" edge="1" parent="1" source="2" target="bwSSeVmjy1r_vaOKLsch-8">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="183" y="510"/>
+                            <mxPoint x="613" y="510"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="2" value="Client" style="html=1;" parent="1" vertex="1">
+                    <mxGeometry x="100" y="420" width="110" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="ConcreteFlyweight" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="300" y="400" width="210" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="+ Operation(extrinsicState)&lt;br&gt;+ intrinsicState" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="11">
+                    <mxGeometry y="26" width="210" height="44" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="11">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="640" y="330" as="sourcePoint"/>
+                        <mxPoint x="630" y="160" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="20" style="edgeStyle=none;rounded=1;html=1;entryX=-0.012;entryY=-0.042;entryDx=0;entryDy=0;entryPerimeter=0;endArrow=block;endFill=1;startArrow=diamond;startFill=1;" edge="1" parent="1" source="14" target="bwSSeVmjy1r_vaOKLsch-4">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="flyweights" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="20">
+                    <mxGeometry x="-0.5303" y="-3" relative="1" as="geometry">
+                        <mxPoint x="-40" y="-18" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="14" value="FlyweightFactory" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="90" y="110" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="15" value="+ GetFlyweight(key)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="14">
+                    <mxGeometry y="26" width="160" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="19" style="edgeStyle=none;rounded=1;html=1;exitX=0;exitY=0;exitDx=75;exitDy=0;exitPerimeter=0;entryX=0.919;entryY=1.083;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;endArrow=none;endFill=0;" edge="1" parent="1" source="18" target="15">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="18" value="&lt;span style=&quot;&quot;&gt;if (flyweight(key) exists) {&lt;/span&gt;&lt;br style=&quot;&quot;&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;return existing flyweight&lt;/span&gt;&lt;br style=&quot;&quot;&gt;&lt;span style=&quot;&quot;&gt;} else {&lt;/span&gt;&lt;br style=&quot;&quot;&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;create new flyweight&lt;/span&gt;&lt;br style=&quot;&quot;&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;add it to pool of flyweights&lt;/span&gt;&lt;br style=&quot;&quot;&gt;&lt;span style=&quot;&quot;&gt;&#9;&lt;/span&gt;&lt;span style=&quot;&quot;&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#9;&lt;/span&gt;return the new flyweight&lt;/span&gt;&lt;br style=&quot;&quot;&gt;&lt;span style=&quot;&quot;&gt;}&lt;/span&gt;" style="shape=note;size=20;whiteSpace=wrap;html=1;labelBorderColor=none;align=left;spacingLeft=9;" vertex="1" parent="1">
+                    <mxGeometry x="180" y="190" width="200" height="150" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
